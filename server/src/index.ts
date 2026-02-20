@@ -9,165 +9,193 @@ if (!BEARER_TOKEN) {
   throw new Error('BEARER_TOKEN environment variable is required');
 }
 
-const Answers = [
-  'As I see it, yes',
-  "Don't count on it",
-  'It is certain',
-  'It is decidedly so',
-  'Most likely',
-  'My reply is no',
-  'My sources say no',
-  'Outlook good',
-  'Outlook not so good',
-  'Signs point to yes',
-  'Very doubtful',
-  'Without a doubt',
-  'Yes definitely',
-  'Yes',
-  'You may rely on it',
-];
+const authHeaders = {
+  Authorization: `Bearer ${BEARER_TOKEN}`,
+  Accept: 'application/json',
+} as const;
 
 const server = new McpServer(
-  {
-    name: 'alpic-openai-app',
-    version: '0.0.1',
-  },
+  { name: 'alpic-openai-app', version: '0.0.1' },
   { capabilities: {} },
-).registerWidget(
-  'magic-8-ball',
-  {
-    description: 'Magic 8 Ball',
-  },
-  {
-    description: 'For fortune-telling or seeking advice.',
-    inputSchema: {
-      question: z.string().describe('The user question.'),
+)
+  .registerWidget(
+    'get-accounts',
+    { description: 'Starling Bank Accounts' },
+    {
+      description: 'Fetch all Starling Bank accounts with balances and identifiers.',
+      annotations: { readOnlyHint: true },
     },
-  },
-  async ({ question }) => {
-    try {
-      // deterministic answer
-      const hash = question
-        .split('')
-        .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const answer = Answers[hash % Answers.length];
-      return {
-        structuredContent: { answer },
-        content: [],
-        isError: false,
-      };
-    } catch (error) {
-      return {
-        content: [{ type: 'text', text: `Error: ${error}` }],
-        isError: true,
-      };
-    }
-  },
-);
-
-server.registerWidget(
-  'get-accounts',
-  {
-    description: 'Starling Bank Accounts',
-    annotations: { readOnlyHint: true },
-  },
-  {
-    description:
-      'Fetch all Starling Bank accounts with balances and identifiers.',
-  },
-  async () => {
-    try {
-      const headers = {
-        Authorization: `Bearer ${BEARER_TOKEN}`,
-        Accept: 'application/json',
-      };
-
-      const accountsRes = await fetch(
-        `${STARLING_API_BASE_URL}/api/v2/accounts`,
-        { headers },
-      );
-      if (!accountsRes.ok) {
-        throw new Error(
-          `Failed to fetch accounts: ${accountsRes.status} ${accountsRes.statusText}`,
+    async () => {
+      try {
+        const accountsRes = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/accounts`,
+          { headers: authHeaders },
         );
-      }
-      const accountsData = await accountsRes.json();
-      const rawAccounts: Array<{
-        accountUid: string;
-        name: string;
-        accountType: string;
-        currency: string;
-        createdAt: string;
-      }> = accountsData.accounts ?? [];
+        if (!accountsRes.ok) {
+          throw new Error(
+            `Failed to fetch accounts: ${accountsRes.status} ${accountsRes.statusText}`,
+          );
+        }
+        const accountsData = await accountsRes.json();
+        const rawAccounts: Array<{
+          accountUid: string;
+          name: string;
+          accountType: string;
+          currency: string;
+          createdAt: string;
+        }> = accountsData.accounts ?? [];
 
-      const enriched = await Promise.all(
-        rawAccounts.map(async (account) => {
-          const [balanceRes, identifiersRes] = await Promise.all([
-            fetch(
-              `${STARLING_API_BASE_URL}/api/v2/accounts/${account.accountUid}/balance`,
-              { headers },
-            ),
-            fetch(
-              `${STARLING_API_BASE_URL}/api/v2/accounts/${account.accountUid}/identifiers`,
-              { headers },
-            ),
-          ]);
+        const enriched = await Promise.all(
+          rawAccounts.map(async (account) => {
+            const [balanceRes, identifiersRes] = await Promise.all([
+              fetch(
+                `${STARLING_API_BASE_URL}/api/v2/accounts/${account.accountUid}/balance`,
+                { headers: authHeaders },
+              ),
+              fetch(
+                `${STARLING_API_BASE_URL}/api/v2/accounts/${account.accountUid}/identifiers`,
+                { headers: authHeaders },
+              ),
+            ]);
 
-          if (!balanceRes.ok) {
-            throw new Error(
-              `Failed to fetch balance for ${account.accountUid}: ${balanceRes.status}`,
-            );
-          }
-          if (!identifiersRes.ok) {
-            throw new Error(
-              `Failed to fetch identifiers for ${account.accountUid}: ${identifiersRes.status}`,
-            );
-          }
+            if (!balanceRes.ok) {
+              throw new Error(
+                `Failed to fetch balance for ${account.accountUid}: ${balanceRes.status}`,
+              );
+            }
+            if (!identifiersRes.ok) {
+              throw new Error(
+                `Failed to fetch identifiers for ${account.accountUid}: ${identifiersRes.status}`,
+              );
+            }
 
-          const balance = await balanceRes.json();
-          const identifiersData = await identifiersRes.json();
+            const balance = await balanceRes.json();
+            const identifiersData = await identifiersRes.json();
 
-          return {
-            ...account,
-            balance: {
-              clearedBalance: balance.clearedBalance,
-              effectiveBalance: balance.effectiveBalance,
-              pendingTransactions: balance.pendingTransactions,
+            return {
+              ...account,
+              balance: {
+                clearedBalance: balance.clearedBalance,
+                effectiveBalance: balance.effectiveBalance,
+                pendingTransactions: balance.pendingTransactions,
+                totalClearedBalance: balance.totalClearedBalance,
+                totalEffectiveBalance: balance.totalEffectiveBalance,
+              },
+              identifiers: identifiersData.accountIdentifiers ?? [],
+            };
+          }),
+        );
+
+        return {
+          structuredContent: { accounts: enriched },
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({ accounts: enriched }, null, 2),
             },
-            identifiers: identifiersData.accountIdentifiers ?? [],
-          };
-        }),
-      );
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
+    'get-cards',
+    { description: 'Starling Bank Cards' },
+    {
+      description: 'Fetch all cards for the account holder with their current controls.',
+      annotations: { readOnlyHint: true },
+    },
+    async () => {
+      try {
+        const res = await fetch(`${STARLING_API_BASE_URL}/api/v2/cards`, {
+          headers: authHeaders,
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch cards: ${res.status} ${res.statusText}`);
+        }
+        const data = await res.json();
+        const cards = data.cards ?? [];
 
-      const summary = enriched
-        .map((a) => {
-          const amount = a.balance.effectiveBalance;
-          const formatted = new Intl.NumberFormat(undefined, {
-            style: 'currency',
-            currency: amount.currency,
-          }).format(amount.minorUnits / 100);
-          return `${a.name} (${a.currency}) ${formatted}`;
-        })
-        .join(', ');
-
-      return {
-        structuredContent: { accounts: enriched },
-        content: [
+        return {
+          structuredContent: { cards },
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({ cards }, null, 2),
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerTool(
+    'update-card-control',
+    {
+      description: 'Enable or disable a card control (ATM, online, POS, gambling, mag stripe, mobile wallet, card lock)',
+      inputSchema: {
+        cardUid: z.string().uuid().describe('The card UID'),
+        control: z
+          .enum([
+            'atm-enabled',
+            'enabled',
+            'gambling-enabled',
+            'mag-stripe-enabled',
+            'mobile-wallet-enabled',
+            'online-enabled',
+            'pos-enabled',
+          ])
+          .describe('The control to update'),
+        value: z.boolean().describe('true to enable, false to disable'),
+      },
+      annotations: { readOnlyHint: false },
+    },
+    async ({ cardUid, control, value }) => {
+      try {
+        const res = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/cards/${cardUid}/controls/${control}`,
           {
-            type: 'text' as const,
-            text: `Found ${enriched.length} account${enriched.length !== 1 ? 's' : ''}: ${summary}`,
+            method: 'PUT',
+            headers: { ...authHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: value }),
           },
-        ],
-        isError: false,
-      };
-    } catch (error) {
-      return {
-        content: [{ type: 'text' as const, text: `Error: ${error}` }],
-        isError: true,
-      };
-    }
-  },
-);
+        );
+
+        if (!res.ok) {
+          throw new Error(
+            `Failed to update ${control}: ${res.status} ${res.statusText}`,
+          );
+        }
+
+        return {
+          structuredContent: { success: true, cardUid, control, value },
+          content: [
+            {
+              type: 'text' as const,
+              text: `Card control "${control}" ${value ? 'enabled' : 'disabled'} successfully.`,
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  );
 
 server.run();
 
