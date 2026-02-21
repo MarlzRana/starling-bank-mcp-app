@@ -62,7 +62,10 @@ function CardVisual({ card }: { card: Card }) {
             width="36"
             height="26"
             rx="4"
-            style={{ fill: 'var(--color-chip-base)', stroke: 'var(--color-chip-line)' }}
+            style={{
+              fill: 'var(--color-chip-base)',
+              stroke: 'var(--color-chip-line)',
+            }}
             strokeWidth="1"
           />
           <rect
@@ -103,7 +106,10 @@ function CardVisual({ card }: { card: Card }) {
             width="12"
             height="18"
             rx="2"
-            style={{ fill: 'var(--color-chip-center)', stroke: 'var(--color-chip-line)' }}
+            style={{
+              fill: 'var(--color-chip-center)',
+              stroke: 'var(--color-chip-line)',
+            }}
             strokeWidth="0.5"
           />
           <rect
@@ -166,8 +172,18 @@ function CardVisual({ card }: { card: Card }) {
             viewBox="0 0 46 30"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <circle cx="16" cy="15" r="14" style={{ fill: 'var(--color-mc-red)' }} />
-            <circle cx="30" cy="15" r="14" style={{ fill: 'var(--color-mc-yellow)' }} />
+            <circle
+              cx="16"
+              cy="15"
+              r="14"
+              style={{ fill: 'var(--color-mc-red)' }}
+            />
+            <circle
+              cx="30"
+              cy="15"
+              r="14"
+              style={{ fill: 'var(--color-mc-yellow)' }}
+            />
             <path
               d="M23 3.6a14 14 0 0 1 0 22.8A14 14 0 0 1 23 3.6z"
               style={{ fill: 'var(--color-mc-orange)' }}
