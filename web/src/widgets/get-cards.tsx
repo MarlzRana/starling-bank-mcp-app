@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { mountWidget } from 'skybridge/web';
 import { useToolInfo, useCallTool } from '../helpers.js';
 import contactlessIcon from '../assets/contactless_icon.png';
+import padlockIcon from '../assets/padlock.png';
 
 type ControlKey =
   | 'atm-enabled'
@@ -167,7 +168,11 @@ function CardVisual({ card }: { card: Card }) {
       </div>
 
       {!card.enabled && (
-        <div className="starling-card__locked-banner">LOCKED</div>
+        <div className="starling-card__locked-banner">
+          <span className="starling-card__locked-circle">
+            <img src={padlockIcon} alt="Locked" className="starling-card__locked-icon" />
+          </span>
+        </div>
       )}
     </div>
   );

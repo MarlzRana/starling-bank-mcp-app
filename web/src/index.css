@@ -276,11 +276,22 @@
   justify-content: center;
   background: rgba(var(--color-text-rgb), 0.48);
   border-radius: inherit;
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  color: var(--color-bg);
   backdrop-filter: blur(2px);
+}
+
+.starling-card__locked-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background-color: var(--color-bg);
+}
+
+.starling-card__locked-icon {
+  width: 2rem;
+  height: 2rem;
 }
 
 /* ── Controls list ── */
