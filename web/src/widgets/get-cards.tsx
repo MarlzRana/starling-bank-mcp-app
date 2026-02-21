@@ -1,8 +1,8 @@
-import "@/index.css";
+import '@/index.css';
 
-import { useState } from "react";
-import { mountWidget } from "skybridge/web";
-import { useToolInfo, useCallTool } from "../helpers.js";
+import { useState } from 'react';
+import { mountWidget } from 'skybridge/web';
+import { useToolInfo, useCallTool } from '../helpers.js';
 
 // Claude Desktop color palette
 // #CC785C Antique Brass  — accent / card body
@@ -12,13 +12,13 @@ import { useToolInfo, useCallTool } from "../helpers.js";
 // #141413 Cod Gray       — primary text
 
 type ControlKey =
-  | "atm-enabled"
-  | "enabled"
-  | "gambling-enabled"
-  | "mag-stripe-enabled"
-  | "mobile-wallet-enabled"
-  | "online-enabled"
-  | "pos-enabled";
+  | 'atm-enabled'
+  | 'enabled'
+  | 'gambling-enabled'
+  | 'mag-stripe-enabled'
+  | 'mobile-wallet-enabled'
+  | 'online-enabled'
+  | 'pos-enabled';
 
 interface CurrencyFlag {
   currency: string;
@@ -47,7 +47,7 @@ interface Card {
 // ── Card Visual ──────────────────────────────────────────────────────────────
 
 function CardVisual({ card }: { card: Card }) {
-  const lastDigits = card.endOfCardNumber?.slice(-4) ?? "????";
+  const lastDigits = card.endOfCardNumber?.slice(-4) ?? '????';
 
   return (
     <div className="starling-card">
@@ -63,13 +63,67 @@ function CardVisual({ card }: { card: Card }) {
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <rect x="1" y="1" width="36" height="26" rx="4" fill="#D4A55A" stroke="#A07830" strokeWidth="1" />
-          <rect x="9" y="1" width="1.5" height="26" fill="#A07830" opacity="0.55" />
-          <rect x="27.5" y="1" width="1.5" height="26" fill="#A07830" opacity="0.55" />
-          <rect x="1" y="9.5" width="36" height="1.5" fill="#A07830" opacity="0.55" />
-          <rect x="1" y="17" width="36" height="1.5" fill="#A07830" opacity="0.55" />
-          <rect x="13" y="5" width="12" height="18" rx="2" fill="#C49040" stroke="#A07830" strokeWidth="0.5" />
-          <rect x="15" y="9" width="8" height="10" rx="1" fill="#B8893E" opacity="0.7" />
+          <rect
+            x="1"
+            y="1"
+            width="36"
+            height="26"
+            rx="4"
+            fill="#D4A55A"
+            stroke="#A07830"
+            strokeWidth="1"
+          />
+          <rect
+            x="9"
+            y="1"
+            width="1.5"
+            height="26"
+            fill="#A07830"
+            opacity="0.55"
+          />
+          <rect
+            x="27.5"
+            y="1"
+            width="1.5"
+            height="26"
+            fill="#A07830"
+            opacity="0.55"
+          />
+          <rect
+            x="1"
+            y="9.5"
+            width="36"
+            height="1.5"
+            fill="#A07830"
+            opacity="0.55"
+          />
+          <rect
+            x="1"
+            y="17"
+            width="36"
+            height="1.5"
+            fill="#A07830"
+            opacity="0.55"
+          />
+          <rect
+            x="13"
+            y="5"
+            width="12"
+            height="18"
+            rx="2"
+            fill="#C49040"
+            stroke="#A07830"
+            strokeWidth="0.5"
+          />
+          <rect
+            x="15"
+            y="9"
+            width="8"
+            height="10"
+            rx="1"
+            fill="#B8893E"
+            opacity="0.7"
+          />
         </svg>
 
         {/* Contactless */}
@@ -79,9 +133,30 @@ function CardVisual({ card }: { card: Card }) {
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <path d="M10 14 Q14 10 18 14" stroke="#141413" strokeWidth="2.2" strokeLinecap="round" fill="none" opacity="0.45" />
-          <path d="M6.5 14 Q14 5.5 21.5 14" stroke="#141413" strokeWidth="2.2" strokeLinecap="round" fill="none" opacity="0.65" />
-          <path d="M3 14 Q14 1 25 14" stroke="#141413" strokeWidth="2.2" strokeLinecap="round" fill="none" opacity="0.85" />
+          <path
+            d="M10 14 Q14 10 18 14"
+            stroke="#141413"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            fill="none"
+            opacity="0.45"
+          />
+          <path
+            d="M6.5 14 Q14 5.5 21.5 14"
+            stroke="#141413"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            fill="none"
+            opacity="0.65"
+          />
+          <path
+            d="M3 14 Q14 1 25 14"
+            stroke="#141413"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            fill="none"
+            opacity="0.85"
+          />
           <circle cx="14" cy="14" r="1.8" fill="#141413" opacity="0.85" />
         </svg>
       </div>
@@ -131,13 +206,13 @@ function Toggle({
   disabled?: boolean;
 }) {
   return (
-    <div className={`card-toggle ${disabled ? "card-toggle--disabled" : ""}`}>
+    <div className={`card-toggle ${disabled ? 'card-toggle--disabled' : ''}`}>
       <span className="card-toggle__label">{label}</span>
       <button
         role="switch"
         aria-checked={checked}
         disabled={disabled}
-        className={`card-toggle__switch ${checked ? "card-toggle__switch--on" : ""}`}
+        className={`card-toggle__switch ${checked ? 'card-toggle__switch--on' : ''}`}
         onClick={() => onChange(!checked)}
       >
         <span className="card-toggle__thumb" />
@@ -149,13 +224,29 @@ function Toggle({
 // ── Controls Panel ───────────────────────────────────────────────────────────
 
 const CONTROLS: { key: ControlKey; label: string; cardProp: keyof Card }[] = [
-  { key: "enabled",             label: "Card Active",             cardProp: "enabled" },
-  { key: "atm-enabled",         label: "ATM Withdrawals",         cardProp: "atmEnabled" },
-  { key: "pos-enabled",         label: "Contactless & Chip+PIN",  cardProp: "posEnabled" },
-  { key: "online-enabled",      label: "Online Payments",         cardProp: "onlineEnabled" },
-  { key: "mobile-wallet-enabled", label: "Mobile Wallet",         cardProp: "mobileWalletEnabled" },
-  { key: "gambling-enabled",    label: "Gambling",                cardProp: "gamblingEnabled" },
-  { key: "mag-stripe-enabled",  label: "Mag Stripe",              cardProp: "magStripeEnabled" },
+  { key: 'enabled', label: 'Card Active', cardProp: 'enabled' },
+  { key: 'atm-enabled', label: 'ATM Withdrawals', cardProp: 'atmEnabled' },
+  {
+    key: 'pos-enabled',
+    label: 'Contactless & Chip+PIN',
+    cardProp: 'posEnabled',
+  },
+  {
+    key: 'online-enabled',
+    label: 'Online Payments',
+    cardProp: 'onlineEnabled',
+  },
+  {
+    key: 'mobile-wallet-enabled',
+    label: 'Mobile Wallet',
+    cardProp: 'mobileWalletEnabled',
+  },
+  { key: 'gambling-enabled', label: 'Gambling', cardProp: 'gamblingEnabled' },
+  {
+    key: 'mag-stripe-enabled',
+    label: 'Mag Stripe',
+    cardProp: 'magStripeEnabled',
+  },
 ];
 
 function ControlsPanel({
@@ -193,8 +284,8 @@ function ControlsPanel({
 // ── Root Widget ──────────────────────────────────────────────────────────────
 
 function GetCards() {
-  const { output } = useToolInfo<"get-cards">();
-  const { callTool, isPending } = useCallTool("update-card-control");
+  const { output } = useToolInfo<'get-cards'>();
+  const { callTool, isPending } = useCallTool('update-card-control');
 
   // Optimistic overrides: { [cardUid]: { [control]: boolean } }
   const [overrides, setOverrides] = useState<
@@ -223,10 +314,10 @@ function GetCards() {
     .map((c) => {
       const cardOverrides = overrides[c.cardUid] ?? {};
       const enabled =
-        "enabled" in cardOverrides ? cardOverrides["enabled"] : c.enabled;
-      return `Card ****${c.endOfCardNumber?.slice(-4)}: ${enabled ? "active" : "locked"}`;
+        'enabled' in cardOverrides ? cardOverrides['enabled'] : c.enabled;
+      return `Card ****${c.endOfCardNumber?.slice(-4)}: ${enabled ? 'active' : 'locked'}`;
     })
-    .join("; ");
+    .join('; ');
 
   return (
     <div className="cards-page" data-llm={llmSummary}>
