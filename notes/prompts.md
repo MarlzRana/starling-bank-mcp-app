@@ -39,3 +39,8 @@ Card tool (slider toggles):
 
 Prompt 3:
 /mcp-app-builder I have attached an image of what the current UI looks like. As you can see we present the card and then the controls underneath. Please instead just present the card, and a small footer saying "Adjust card controls by clicking/tapping your card". Then add the ability to click the card, and it flip around (make the animation), and it present the list of card controls of the card and their toggles (which we can toggle and off and we update relevant controls appropriately). In terms of design, make the back of the card look like the second image I have attached (get relevant information from the tool input and get-accounts tool, and for the name use this name "Marlin Ranasinghe", and use the contactless logo), and then in the same way as when the card is locked, put a black tint on it, and the card controls and their toggles on top of the black tint.
+
+Prompt 4:
+Read the @swagger.json and create a tool called get-account-holder which returns information about the account holder (the token is associated with). It should be one tool, that calls  
+ both /api/v2/account-holder and /api/v2/account-holder/name and merges their response. And then from the get-cards UI call this tool to get the name of the account holder instead of hard  
+ coding "Marlin Ranasinghe".

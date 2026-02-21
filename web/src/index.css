@@ -363,3 +363,240 @@
 .card-toggle__switch--on .card-toggle__thumb {
   transform: translateX(1.15rem);
 }
+
+/* ── Card Flip Animation ── */
+
+.card-flip-container {
+  perspective: 1000px;
+  max-width: 360px;
+  align-self: center;
+  width: 100%;
+  cursor: pointer;
+}
+
+.card-flip {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.586;
+  transform-style: preserve-3d;
+  transition: transform 0.6s ease;
+}
+
+.card-flip--flipped {
+  transform: rotateY(180deg);
+}
+
+.card-flip__face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+
+.card-flip__back {
+  transform: rotateY(180deg);
+}
+
+/* ── Card Back Visual ── */
+
+.starling-card-back {
+  background: linear-gradient(
+    145deg,
+    var(--color-accent-light) 0%,
+    var(--color-accent) 45%,
+    var(--color-accent-dark) 100%
+  );
+  border-radius: 18px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    0 10px 36px rgba(var(--color-text-rgb), 0.28),
+    0 2px 8px rgba(var(--color-text-rgb), 0.16);
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Subtle sheen on back */
+.starling-card-back::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.18) 0%,
+    transparent 55%
+  );
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.starling-card-back__stripe {
+  width: 100%;
+  height: 18%;
+  background: var(--color-text);
+  margin-top: 8%;
+}
+
+.starling-card-back__signature {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 1.2rem;
+  margin-top: 5%;
+}
+
+.starling-card-back__sig-strip {
+  flex: 1;
+  height: 1.6rem;
+  background: repeating-linear-gradient(
+    90deg,
+    #e8e6df 0px,
+    #e8e6df 2px,
+    #d9d7d0 2px,
+    #d9d7d0 4px
+  );
+  border-radius: 2px;
+}
+
+.starling-card-back__cvv {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #fff;
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  height: 1.6rem;
+  box-sizing: border-box;
+}
+
+.starling-card-back__cvv-label {
+  font-size: 0.55rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.starling-card-back__cvv-value {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text);
+  font-family: monospace;
+  letter-spacing: 0.1em;
+}
+
+.starling-card-back__details {
+  padding: 0 1.2rem;
+  margin-top: 4%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.starling-card-back__number {
+  font-size: clamp(0.65rem, 2.5vw, 0.78rem);
+  font-weight: 600;
+  color: var(--color-text);
+  letter-spacing: 0.12em;
+  font-family: monospace;
+}
+
+.starling-card-back__name {
+  font-size: clamp(0.6rem, 2.2vw, 0.72rem);
+  font-weight: 600;
+  color: var(--color-text);
+  letter-spacing: 0.06em;
+}
+
+.starling-card-back__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.starling-card-back__expiry {
+  font-size: clamp(0.5rem, 2vw, 0.62rem);
+  color: var(--color-text);
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+.starling-card-back__account {
+  font-size: clamp(0.5rem, 2vw, 0.62rem);
+  color: var(--color-text);
+  opacity: 0.8;
+  font-family: monospace;
+  font-weight: 500;
+}
+
+.starling-card-back__footer {
+  margin-top: auto;
+  padding: 0 1.2rem 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.starling-card-back__debit-badge {
+  font-size: clamp(0.55rem, 2vw, 0.65rem);
+  font-weight: 700;
+  color: var(--color-text);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1.5px solid var(--color-text);
+  border-radius: 3px;
+  padding: 0.1rem 0.35rem;
+  opacity: 0.7;
+}
+
+.starling-card-back__service {
+  font-size: clamp(0.45rem, 1.8vw, 0.55rem);
+  color: var(--color-text);
+  opacity: 0.6;
+  font-weight: 500;
+}
+
+/* ── Controls Overlay on Card Back ── */
+
+.card-back__controls-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(var(--color-text-rgb), 0.48);
+  backdrop-filter: blur(2px);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+}
+
+.card-controls--overlay {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  width: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.card-controls--overlay .card-toggle {
+  padding: 0.4rem 0.75rem;
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+.card-controls--overlay .card-toggle__label {
+  color: #fff;
+  font-size: 0.78rem;
+}
+
+/* ── Card Hint Text ── */
+
+.card-hint {
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  margin: 0;
+  padding: 0;
+}

@@ -177,6 +177,63 @@ function CardVisual({ card, enabled }: { card: Card; enabled: boolean }) {
   );
 }
 
+// ── Card Back Visual ─────────────────────────────────────────────────────────
+
+function CardBack({ card }: { card: Card }) {
+  const lastDigits = card.endOfCardNumber?.slice(-4) ?? '????';
+  const accountsInfo = useToolInfo<'get-accounts'>();
+  const accounts = accountsInfo?.output?.accounts;
+  let accountNumber = '••••••••';
+  let sortCode = '••-••-••';
+  if (accounts && accounts.length > 0) {
+    const sortCodeId = accounts[0].identifiers?.find(
+      (id: { identifierType: string }) => id.identifierType === 'SORT_CODE'
+    );
+    if (sortCodeId) {
+      accountNumber = sortCodeId.accountIdentifier;
+      sortCode = sortCodeId.bankIdentifier;
+    }
+  }
+
+  return (
+    <div className="starling-card-back">
+      {/* Magnetic stripe */}
+      <div className="starling-card-back__stripe" />
+
+      {/* Signature strip + CVV */}
+      <div className="starling-card-back__signature">
+        <div className="starling-card-back__sig-strip" />
+        <div className="starling-card-back__cvv">
+          <span className="starling-card-back__cvv-label">CVV</span>
+          <span className="starling-card-back__cvv-value">•••</span>
+        </div>
+      </div>
+
+      {/* Card details */}
+      <div className="starling-card-back__details">
+        <div className="starling-card-back__number">
+          •••• •••• •••• {lastDigits}
+        </div>
+        <div className="starling-card-back__name">MARLIN RANASINGHE</div>
+        <div className="starling-card-back__row">
+          <span className="starling-card-back__expiry">EXP END ••/••</span>
+          <span className="starling-card-back__account">
+            {sortCode} / {accountNumber}
+          </span>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="starling-card-back__footer">
+        <span className="starling-card-back__debit-badge">debit</span>
+        <span className="starling-card-back__service">
+          Starling Bank &bull; starlingbank.com
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // ── Toggle Switch ────────────────────────────────────────────────────────────
 
 function Toggle({
@@ -198,7 +255,10 @@ function Toggle({
         aria-checked={checked}
         disabled={disabled}
         className={`card-toggle__switch ${checked ? 'card-toggle__switch--on' : ''}`}
-        onClick={() => onChange(!checked)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onChange(!checked);
+        }}
       >
         <span className="card-toggle__thumb" />
       </button>
@@ -245,7 +305,7 @@ function ControlsPanel({
   isPending: boolean;
 }) {
   return (
-    <div className="card-controls">
+    <div className="card-controls card-controls--overlay">
       {CONTROLS.map(({ key, label, cardProp }) => {
         const value =
           key in overrides
@@ -280,6 +340,9 @@ function GetCards() {
   const [confirmedEnabled, setConfirmedEnabled] = useState<
     Record<string, boolean>
   >({});
+
+  // Which card is flipped to show the back (null = none)
+  const [flippedCardUid, setFlippedCardUid] = useState<string | null>(null);
 
   if (!output) {
     return (
@@ -323,22 +386,50 @@ function GetCards() {
 
   return (
     <div className="cards-page" data-llm={llmSummary}>
-      {cards.map((card) => (
-        <div key={card.cardUid} className="card-section">
-          <CardVisual
-            card={card}
-            enabled={card.cardUid in confirmedEnabled ? confirmedEnabled[card.cardUid] : card.enabled}
-          />
-          <ControlsPanel
-            card={card}
-            overrides={overrides[card.cardUid] ?? {}}
-            onToggle={(control, value) =>
-              handleToggle(card.cardUid, control, value)
-            }
-            isPending={isPending}
-          />
-        </div>
-      ))}
+      {cards.map((card) => {
+        const isFlipped = flippedCardUid === card.cardUid;
+        const cardEnabled = card.cardUid in confirmedEnabled
+          ? confirmedEnabled[card.cardUid]
+          : card.enabled;
+
+        return (
+          <div key={card.cardUid} className="card-section">
+            <div
+              className="card-flip-container"
+              onClick={() =>
+                setFlippedCardUid(isFlipped ? null : card.cardUid)
+              }
+            >
+              <div
+                className={`card-flip ${isFlipped ? 'card-flip--flipped' : ''}`}
+              >
+                {/* Front face */}
+                <div className="card-flip__face card-flip__front">
+                  <CardVisual card={card} enabled={cardEnabled} />
+                </div>
+
+                {/* Back face */}
+                <div className="card-flip__face card-flip__back">
+                  <CardBack card={card} />
+                  <div className="card-back__controls-overlay">
+                    <ControlsPanel
+                      card={card}
+                      overrides={overrides[card.cardUid] ?? {}}
+                      onToggle={(control, value) =>
+                        handleToggle(card.cardUid, control, value)
+                      }
+                      isPending={isPending}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p className="card-hint">
+              Adjust card controls by clicking/tapping your card
+            </p>
+          </div>
+        );
+      })}
     </div>
   );
 }
