@@ -3,7 +3,10 @@ import '@/index.css';
 import { useEffect, useState } from 'react';
 import { mountWidget } from 'skybridge/web';
 import { useToolInfo, useCallTool } from '../helpers.js';
+import chipIcon from '../assets/chip.svg';
+import chipIconDisabled from '../assets/chip_disabled.svg';
 import contactlessIcon from '../assets/contactless_icon.svg';
+import contactlessIconDisabled from '../assets/contactless_icon_disabled.svg';
 import padlockIcon from '../assets/padlock_closed.svg';
 
 type ControlKey =
@@ -40,7 +43,7 @@ interface Card {
 
 // ── Card Visual ──────────────────────────────────────────────────────────────
 
-function CardVisual({ card, enabled }: { card: Card; enabled: boolean }) {
+function CardVisual({ card, enabled, posEnabled }: { card: Card; enabled: boolean; posEnabled: boolean }) {
   const lastDigits = card.endOfCardNumber?.slice(-4) ?? '????';
 
   return (
@@ -51,84 +54,45 @@ function CardVisual({ card, enabled }: { card: Card; enabled: boolean }) {
 
       <div className="starling-card__middle">
         {/* EMV Chip */}
-        <svg
-          className="starling-card__chip"
-          viewBox="0 0 38 28"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <rect
-            x="1"
-            y="1"
-            width="36"
-            height="26"
-            rx="4"
-            style={{
-              fill: 'var(--color-chip-base)',
-              stroke: 'var(--color-chip-line)',
-            }}
-            strokeWidth="1"
+        <div style={{ position: 'relative', display: 'inline-flex' }}>
+          <img
+            className="starling-card__chip"
+            src={enabled && posEnabled ? chipIcon : chipIconDisabled}
+            alt="EMV Chip"
           />
-          <rect
-            x="9"
-            y="1"
-            width="1.5"
-            height="26"
-            style={{ fill: 'var(--color-chip-line)' }}
-            opacity="0.55"
-          />
-          <rect
-            x="27.5"
-            y="1"
-            width="1.5"
-            height="26"
-            style={{ fill: 'var(--color-chip-line)' }}
-            opacity="0.55"
-          />
-          <rect
-            x="1"
-            y="9.5"
-            width="36"
-            height="1.5"
-            style={{ fill: 'var(--color-chip-line)' }}
-            opacity="0.55"
-          />
-          <rect
-            x="1"
-            y="17"
-            width="36"
-            height="1.5"
-            style={{ fill: 'var(--color-chip-line)' }}
-            opacity="0.55"
-          />
-          <rect
-            x="13"
-            y="5"
-            width="12"
-            height="18"
-            rx="2"
-            style={{
-              fill: 'var(--color-chip-center)',
-              stroke: 'var(--color-chip-line)',
-            }}
-            strokeWidth="0.5"
-          />
-          <rect
-            x="15"
-            y="9"
-            width="8"
-            height="10"
-            rx="1"
-            style={{ fill: 'var(--color-chip-inner)' }}
-            opacity="0.7"
-          />
-        </svg>
+          {(!enabled || !posEnabled) && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <span style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '62%',
+                aspectRatio: '1',
+                borderRadius: '50%',
+                border: '1.5px solid rgba(var(--color-text-rgb), 0.7)',
+                backgroundColor: 'rgba(var(--color-text-rgb), 0.5)',
+              }}>
+                <img
+                  src={padlockIcon}
+                  alt="Locked"
+                  style={{ width: '55%', height: '55%' }}
+                />
+              </span>
+            </div>
+          )}
+        </div>
 
         {/* Contactless */}
         <img
           className="starling-card__contactless"
-          src={contactlessIcon}
-          alt="Contactless"
+          src={posEnabled ? contactlessIcon : contactlessIconDisabled}
+          alt={posEnabled ? 'Contactless' : 'Contactless disabled'}
         />
       </div>
 
@@ -169,7 +133,11 @@ function CardVisual({ card, enabled }: { card: Card; enabled: boolean }) {
       {!enabled && (
         <div className="starling-card__locked-banner">
           <span className="starling-card__locked-circle">
-            <img src={padlockIcon} alt="Locked" className="starling-card__locked-icon" />
+            <img
+              src={padlockIcon}
+              alt="Locked"
+              className="starling-card__locked-icon"
+            />
           </span>
         </div>
       )}
@@ -204,7 +172,7 @@ function CardBack({ card }: { card: Card }) {
       const account = data.accounts?.[0];
       if (account) {
         const sortCodeId = account.identifiers?.find(
-          (id) => id.identifierType === 'SORT_CODE'
+          (id) => id.identifierType === 'SORT_CODE',
         );
         if (sortCodeId) {
           setAccountNumber(sortCodeId.accountIdentifier);
@@ -233,7 +201,9 @@ function CardBack({ card }: { card: Card }) {
         <div className="starling-card-back__number">
           •••• •••• •••• {lastDigits}
         </div>
-        <div className="starling-card-back__name">{holderName.toUpperCase()}</div>
+        <div className="starling-card-back__name">
+          {holderName.toUpperCase()}
+        </div>
         <div className="starling-card-back__row">
           <span className="starling-card-back__expiry">EXP END ••/••</span>
           <span className="starling-card-back__account">
@@ -355,9 +325,9 @@ function GetCards() {
     Record<string, Partial<Record<ControlKey, boolean>>>
   >({});
 
-  // Confirmed enabled state for card visual — only updated after API succeeds
-  const [confirmedEnabled, setConfirmedEnabled] = useState<
-    Record<string, boolean>
+  // Confirmed control values for the card visual — only updated after API succeeds
+  const [confirmedControls, setConfirmedControls] = useState<
+    Record<string, Partial<Record<ControlKey, boolean>>>
   >({});
 
   // Which card is flipped to show the back (null = none)
@@ -378,20 +348,24 @@ function GetCards() {
       ...prev,
       [cardUid]: { ...(prev[cardUid] ?? {}), [control]: value },
     }));
-    callTool({ cardUid, control, value }, {
-      onSuccess: () => {
-        if (control === 'enabled') {
-          setConfirmedEnabled((prev) => ({ ...prev, [cardUid]: value }));
-        }
+    callTool(
+      { cardUid, control, value },
+      {
+        onSuccess: () => {
+          setConfirmedControls((prev) => ({
+            ...prev,
+            [cardUid]: { ...(prev[cardUid] ?? {}), [control]: value },
+          }));
+        },
+        onError: () => {
+          // Revert the optimistic override so the toggle reflects true state
+          setOverrides((prev) => ({
+            ...prev,
+            [cardUid]: { ...(prev[cardUid] ?? {}), [control]: !value },
+          }));
+        },
       },
-      onError: () => {
-        // Revert the optimistic override so the toggle reflects true state
-        setOverrides((prev) => ({
-          ...prev,
-          [cardUid]: { ...(prev[cardUid] ?? {}), [control]: !value },
-        }));
-      },
-    });
+    );
   }
 
   const llmSummary = cards
@@ -407,24 +381,22 @@ function GetCards() {
     <div className="cards-page" data-llm={llmSummary}>
       {cards.map((card) => {
         const isFlipped = flippedCardUid === card.cardUid;
-        const cardEnabled = card.cardUid in confirmedEnabled
-          ? confirmedEnabled[card.cardUid]
-          : card.enabled;
+        const confirmed = confirmedControls[card.cardUid] ?? {};
+        const cardEnabled = 'enabled' in confirmed ? confirmed['enabled']! : card.enabled;
+        const cardPosEnabled = 'pos-enabled' in confirmed ? confirmed['pos-enabled']! : card.posEnabled;
 
         return (
           <div key={card.cardUid} className="card-section">
             <div
               className="card-flip-container"
-              onClick={() =>
-                setFlippedCardUid(isFlipped ? null : card.cardUid)
-              }
+              onClick={() => setFlippedCardUid(isFlipped ? null : card.cardUid)}
             >
               <div
                 className={`card-flip ${isFlipped ? 'card-flip--flipped' : ''}`}
               >
                 {/* Front face */}
                 <div className="card-flip__face card-flip__front">
-                  <CardVisual card={card} enabled={cardEnabled} />
+                  <CardVisual card={card} enabled={cardEnabled} posEnabled={cardPosEnabled} />
                 </div>
 
                 {/* Back face */}
@@ -444,7 +416,7 @@ function GetCards() {
               </div>
             </div>
             <p className="card-hint">
-              Adjust card controls by clicking/tapping your card
+              Adjust card controls by clicking/tapping the card
             </p>
           </div>
         );

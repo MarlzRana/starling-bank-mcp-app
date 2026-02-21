@@ -46,6 +46,9 @@ Payees:
 See payees tool:
 GET /api/v2/payees Get an account holder's payees
 
+See payee tool:
+GET /api/v2/payees/{payeeUid} Get a specific account holder payee
+
 Create payee tool:
 PUT /api/v2/payees Create a payee
 
