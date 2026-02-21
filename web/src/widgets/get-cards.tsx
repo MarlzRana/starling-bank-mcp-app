@@ -1,6 +1,6 @@
 import '@/index.css';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { mountWidget } from 'skybridge/web';
 import { useToolInfo, useCallTool } from '../helpers.js';
 import contactlessIcon from '../assets/contactless_icon.svg';
@@ -181,21 +181,38 @@ function CardVisual({ card, enabled }: { card: Card; enabled: boolean }) {
 
 function CardBack({ card }: { card: Card }) {
   const lastDigits = card.endOfCardNumber?.slice(-4) ?? '????';
-  const accountsInfo = useToolInfo<'get-accounts'>();
-  const accountsOutput = accountsInfo?.output;
-  const accounts = accountsOutput?.accounts;
-  const holderName = accountsOutput?.accountHolderName ?? '••••••••••';
-  let accountNumber = '••••••••';
-  let sortCode = '••-••-••';
-  if (accounts && accounts.length > 0) {
-    const sortCodeId = accounts[0].identifiers?.find(
-      (id: { identifierType: string }) => id.identifierType === 'SORT_CODE'
-    );
-    if (sortCodeId) {
-      accountNumber = sortCodeId.accountIdentifier;
-      sortCode = sortCodeId.bankIdentifier;
-    }
-  }
+  const { callToolAsync } = useCallTool('get-accounts');
+  const [holderName, setHolderName] = useState('••••••••••');
+  const [accountNumber, setAccountNumber] = useState('••••••••');
+  const [sortCode, setSortCode] = useState('••-••-••');
+
+  useEffect(() => {
+    callToolAsync().then((res) => {
+      const data = res.structuredContent as {
+        accountHolderName?: string;
+        accounts?: Array<{
+          identifiers?: Array<{
+            identifierType: string;
+            bankIdentifier: string;
+            accountIdentifier: string;
+          }>;
+        }>;
+      };
+      if (data.accountHolderName) {
+        setHolderName(data.accountHolderName);
+      }
+      const account = data.accounts?.[0];
+      if (account) {
+        const sortCodeId = account.identifiers?.find(
+          (id) => id.identifierType === 'SORT_CODE'
+        );
+        if (sortCodeId) {
+          setAccountNumber(sortCodeId.accountIdentifier);
+          setSortCode(sortCodeId.bankIdentifier);
+        }
+      }
+    });
+  }, []);
 
   return (
     <div className="starling-card-back">
