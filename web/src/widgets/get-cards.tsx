@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { mountWidget } from 'skybridge/web';
 import { useToolInfo, useCallTool } from '../helpers.js';
 import contactlessIcon from '../assets/contactless_icon.png';
-import padlockIcon from '../assets/padlock.png';
+import padlockIcon from '../assets/padlock_closed.svg';
 
 type ControlKey =
   | 'atm-enabled'

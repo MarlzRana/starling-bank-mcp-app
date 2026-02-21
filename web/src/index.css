@@ -283,15 +283,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 4rem;
-  height: 4rem;
+  width: clamp(4.5rem, 20vw, 5.5rem);
+  height: clamp(4.5rem, 20vw, 5.5rem);
   border-radius: 50%;
   background-color: var(--color-bg);
 }
 
 .starling-card__locked-icon {
-  width: 2rem;
-  height: 2rem;
+  width: clamp(3rem, 13vw, 3.8rem);
+  height: clamp(3rem, 13vw, 3.8rem);
 }
 
 /* ── Controls list ── */

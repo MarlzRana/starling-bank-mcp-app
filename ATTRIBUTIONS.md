@@ -1,1 +1,2 @@
-<a href="https://www.flaticon.com/free-icons/caps-lock" title="caps lock icons">Caps lock icons created by Dave Gandy - Flaticon</a>
+<a href="https://www.svgrepo.com/svg/441690/padlock-close">Padlock Close by chikin icons</a>
+<a href="https://www.svgrepo.com/svg/441691/padlock-open">Padlock Open by chikin icons</a>
