@@ -1,15 +1,15 @@
 /* ── Color palette ───────────────────────────────────── */
 
 :root {
-  --color-accent: #cc785c;       /* Antique Brass  — accent / card body */
+  --color-accent: #cc785c; /* Antique Brass  — accent / card body */
   --color-accent-light: #d4896a; /* Antique Brass light — card gradient start */
-  --color-accent-dark: #b86448;  /* Antique Brass dark  — card gradient end */
-  --color-text: #141413;         /* Cod Gray        — primary text */
+  --color-accent-dark: #b86448; /* Antique Brass dark  — card gradient end */
+  --color-text: #141413; /* Cod Gray        — primary text */
   --color-text-secondary: #828179; /* Friar Gray    — secondary text */
-  --color-bg: #f0efea;           /* Cararra         — page background */
-  --color-surface: #ffffff;      /* White           — surface */
-  --color-toggle-off: #d1cfc9;   /* Toggle off background */
-  --color-text-rgb: 20, 20, 19;  /* Cod Gray as RGB channels for rgba() */
+  --color-bg: #f0efea; /* Cararra         — page background */
+  --color-surface: #ffffff; /* White           — surface */
+  --color-toggle-off: #d1cfc9; /* Toggle off background */
+  --color-text-rgb: 20, 20, 19; /* Cod Gray as RGB channels for rgba() */
 
   /* EMV chip */
   --color-chip-base: #d4a55a;
@@ -191,7 +191,7 @@
 
 /* Subtle sheen */
 .starling-card::before {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(
