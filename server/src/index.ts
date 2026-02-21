@@ -153,14 +153,13 @@ const server = new McpServer(
     'update-card-control',
     {
       description:
-        'Enable or disable a card control (ATM, online, POS, gambling, mag stripe, mobile wallet, card lock)',
+        'Enable or disable a card control (ATM, online, POS, mag stripe, mobile wallet, card lock)',
       inputSchema: {
         cardUid: z.string().uuid().describe('The card UID'),
         control: z
           .enum([
             'atm-enabled',
             'enabled',
-            'gambling-enabled',
             'mag-stripe-enabled',
             'mobile-wallet-enabled',
             'online-enabled',

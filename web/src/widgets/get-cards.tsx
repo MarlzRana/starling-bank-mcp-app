@@ -3,13 +3,12 @@ import '@/index.css';
 import { useState } from 'react';
 import { mountWidget } from 'skybridge/web';
 import { useToolInfo, useCallTool } from '../helpers.js';
-import contactlessIcon from '../assets/contactless_icon.png';
+import contactlessIcon from '../assets/contactless_icon.svg';
 import padlockIcon from '../assets/padlock_closed.svg';
 
 type ControlKey =
   | 'atm-enabled'
   | 'enabled'
-  | 'gambling-enabled'
   | 'mag-stripe-enabled'
   | 'mobile-wallet-enabled'
   | 'online-enabled'
@@ -227,7 +226,6 @@ const CONTROLS: { key: ControlKey; label: string; cardProp: keyof Card }[] = [
     label: 'Mobile Wallet',
     cardProp: 'mobileWalletEnabled',
   },
-  { key: 'gambling-enabled', label: 'Gambling', cardProp: 'gamblingEnabled' },
   {
     key: 'mag-stripe-enabled',
     label: 'Mag Stripe',
