@@ -124,6 +124,9 @@ function GetAccounts() {
 
   return (
     <div className="accounts-container">
+      {output.accountHolderName && (
+        <div className="account-holder-name">{output.accountHolderName}</div>
+      )}
       {output.accounts.map((account: Account) => (
         <AccountCard key={account.accountUid} account={account} />
       ))}

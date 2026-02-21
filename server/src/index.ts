@@ -33,10 +33,15 @@ const server = new McpServer(
     },
     async () => {
       try {
-        const accountsRes = await fetch(
-          `${STARLING_API_BASE_URL}/api/v2/accounts`,
-          { headers: authHeaders },
-        );
+        const [accountsRes, holderNameRes] = await Promise.all([
+          fetch(`${STARLING_API_BASE_URL}/api/v2/accounts`, {
+            headers: authHeaders,
+          }),
+          fetch(`${STARLING_API_BASE_URL}/api/v2/account-holder/name`, {
+            headers: authHeaders,
+          }),
+        ]);
+
         if (!accountsRes.ok) {
           throw new Error(
             `Failed to fetch accounts: ${accountsRes.status} ${accountsRes.statusText}`,
@@ -50,6 +55,12 @@ const server = new McpServer(
           currency: string;
           createdAt: string;
         }> = accountsData.accounts ?? [];
+
+        let accountHolderName: string | undefined;
+        if (holderNameRes.ok) {
+          const holderData = await holderNameRes.json();
+          accountHolderName = holderData.accountHolderName;
+        }
 
         const enriched = await Promise.all(
           rawAccounts.map(async (account) => {
@@ -92,12 +103,14 @@ const server = new McpServer(
           }),
         );
 
+        const result = { accountHolderName, accounts: enriched };
+
         return {
-          structuredContent: { accounts: enriched },
+          structuredContent: result,
           content: [
             {
               type: 'text' as const,
-              text: JSON.stringify({ accounts: enriched }, null, 2),
+              text: JSON.stringify(result, null, 2),
             },
           ],
           isError: false,

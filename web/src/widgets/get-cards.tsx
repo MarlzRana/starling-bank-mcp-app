@@ -182,7 +182,9 @@ function CardVisual({ card, enabled }: { card: Card; enabled: boolean }) {
 function CardBack({ card }: { card: Card }) {
   const lastDigits = card.endOfCardNumber?.slice(-4) ?? '????';
   const accountsInfo = useToolInfo<'get-accounts'>();
-  const accounts = accountsInfo?.output?.accounts;
+  const accountsOutput = accountsInfo?.output;
+  const accounts = accountsOutput?.accounts;
+  const holderName = accountsOutput?.accountHolderName ?? '••••••••••';
   let accountNumber = '••••••••';
   let sortCode = '••-••-••';
   if (accounts && accounts.length > 0) {
@@ -214,7 +216,7 @@ function CardBack({ card }: { card: Card }) {
         <div className="starling-card-back__number">
           •••• •••• •••• {lastDigits}
         </div>
-        <div className="starling-card-back__name">MARLIN RANASINGHE</div>
+        <div className="starling-card-back__name">{holderName.toUpperCase()}</div>
         <div className="starling-card-back__row">
           <span className="starling-card-back__expiry">EXP END ••/••</span>
           <span className="starling-card-back__account">
