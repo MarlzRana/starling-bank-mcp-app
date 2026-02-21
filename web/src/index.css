@@ -10,6 +10,17 @@
   --color-surface: #ffffff;      /* White           — surface */
   --color-toggle-off: #d1cfc9;   /* Toggle off background */
   --color-text-rgb: 20, 20, 19;  /* Cod Gray as RGB channels for rgba() */
+
+  /* EMV chip */
+  --color-chip-base: #d4a55a;
+  --color-chip-line: #a07830;
+  --color-chip-center: #c49040;
+  --color-chip-inner: #b8893e;
+
+  /* Mastercard brand */
+  --color-mc-red: #eb001b;
+  --color-mc-yellow: #f79e1b;
+  --color-mc-orange: #ff5f00;
 }
 
 /* ── Accounts Widget ─────────────────────────────────── */
