@@ -41,7 +41,7 @@ interface Card {
 
 // ── Card Visual ──────────────────────────────────────────────────────────────
 
-function CardVisual({ card }: { card: Card }) {
+function CardVisual({ card, enabled }: { card: Card; enabled: boolean }) {
   const lastDigits = card.endOfCardNumber?.slice(-4) ?? '????';
 
   return (
@@ -167,7 +167,7 @@ function CardVisual({ card }: { card: Card }) {
         </div>
       </div>
 
-      {!card.enabled && (
+      {!enabled && (
         <div className="starling-card__locked-banner">
           <span className="starling-card__locked-circle">
             <img src={padlockIcon} alt="Locked" className="starling-card__locked-icon" />
@@ -273,9 +273,14 @@ function GetCards() {
   const { output } = useToolInfo<'get-cards'>();
   const { callTool, isPending } = useCallTool('update-card-control');
 
-  // Optimistic overrides: { [cardUid]: { [control]: boolean } }
+  // Optimistic overrides for control toggles: { [cardUid]: { [control]: boolean } }
   const [overrides, setOverrides] = useState<
     Record<string, Partial<Record<ControlKey, boolean>>>
+  >({});
+
+  // Confirmed enabled state for card visual — only updated after API succeeds
+  const [confirmedEnabled, setConfirmedEnabled] = useState<
+    Record<string, boolean>
   >({});
 
   if (!output) {
@@ -293,7 +298,20 @@ function GetCards() {
       ...prev,
       [cardUid]: { ...(prev[cardUid] ?? {}), [control]: value },
     }));
-    callTool({ cardUid, control, value });
+    callTool({ cardUid, control, value }, {
+      onSuccess: () => {
+        if (control === 'enabled') {
+          setConfirmedEnabled((prev) => ({ ...prev, [cardUid]: value }));
+        }
+      },
+      onError: () => {
+        // Revert the optimistic override so the toggle reflects true state
+        setOverrides((prev) => ({
+          ...prev,
+          [cardUid]: { ...(prev[cardUid] ?? {}), [control]: !value },
+        }));
+      },
+    });
   }
 
   const llmSummary = cards
@@ -309,7 +327,10 @@ function GetCards() {
     <div className="cards-page" data-llm={llmSummary}>
       {cards.map((card) => (
         <div key={card.cardUid} className="card-section">
-          <CardVisual card={card} />
+          <CardVisual
+            card={card}
+            enabled={card.cardUid in confirmedEnabled ? confirmedEnabled[card.cardUid] : card.enabled}
+          />
           <ControlsPanel
             card={card}
             overrides={overrides[card.cardUid] ?? {}}
