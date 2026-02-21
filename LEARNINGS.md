@@ -1,1 +1,2 @@
 - In a Hackathon, construct prompts together in a shared file with VSCode liveshare
+- Use Opus to plan and Sonnet to implement

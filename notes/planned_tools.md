@@ -45,6 +45,12 @@ Attachment:
 Payees:
 See payees tool:
 GET /api/v2/payees Get an account holder's payees
+GET /api/v2/payees/{payeeUid}/image Serves the image for the payee
+GET /api/v2/payees/{payeeUid}/account/{accountUid}/scheduled-payments Get scheduled payments
+GET /api/v2/payees/{payeeUid}/account/{accountUid}/payments View a history of payments to your payee
+PUT /api/v2/payees Create a payee
+PUT /api/v2/payees/{payeeUid} Update a payee
+DELETE /api/v2/payees/{payeeUid} Deletes a payee
 
 See payee tool:
 GET /api/v2/payees/{payeeUid} Get a specific account holder payee
