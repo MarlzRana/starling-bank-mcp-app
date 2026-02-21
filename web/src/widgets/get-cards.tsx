@@ -128,7 +128,7 @@ function CardVisual({ card }: { card: Card }) {
         >
           <path
             d="M10 14 Q14 10 18 14"
-            stroke="#141413"
+            stroke="currentColor"
             strokeWidth="2.2"
             strokeLinecap="round"
             fill="none"
@@ -136,7 +136,7 @@ function CardVisual({ card }: { card: Card }) {
           />
           <path
             d="M6.5 14 Q14 5.5 21.5 14"
-            stroke="#141413"
+            stroke="currentColor"
             strokeWidth="2.2"
             strokeLinecap="round"
             fill="none"
@@ -144,13 +144,13 @@ function CardVisual({ card }: { card: Card }) {
           />
           <path
             d="M3 14 Q14 1 25 14"
-            stroke="#141413"
+            stroke="currentColor"
             strokeWidth="2.2"
             strokeLinecap="round"
             fill="none"
             opacity="0.85"
           />
-          <circle cx="14" cy="14" r="1.8" fill="#141413" opacity="0.85" />
+          <circle cx="14" cy="14" r="1.8" fill="currentColor" opacity="0.85" />
         </svg>
       </div>
 
