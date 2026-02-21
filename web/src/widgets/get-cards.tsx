@@ -3,6 +3,7 @@ import '@/index.css';
 import { useState } from 'react';
 import { mountWidget } from 'skybridge/web';
 import { useToolInfo, useCallTool } from '../helpers.js';
+import contactlessIcon from '../assets/contactless_icon.png';
 
 type ControlKey =
   | 'atm-enabled'
@@ -124,38 +125,11 @@ function CardVisual({ card }: { card: Card }) {
         </svg>
 
         {/* Contactless */}
-        <svg
+        <img
           className="starling-card__contactless"
-          viewBox="0 0 28 28"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M10 14 Q14 10 18 14"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            fill="none"
-            opacity="0.45"
-          />
-          <path
-            d="M6.5 14 Q14 5.5 21.5 14"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            fill="none"
-            opacity="0.65"
-          />
-          <path
-            d="M3 14 Q14 1 25 14"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            fill="none"
-            opacity="0.85"
-          />
-          <circle cx="14" cy="14" r="1.8" fill="currentColor" opacity="0.85" />
-        </svg>
+          src={contactlessIcon}
+          alt="Contactless"
+        />
       </div>
 
       <div className="starling-card__bottom">
