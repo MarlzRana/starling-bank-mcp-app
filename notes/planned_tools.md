@@ -55,11 +55,32 @@ DELETE /api/v2/payees/{payeeUid} Deletes a payee
 See payee tool:
 GET /api/v2/payees/{payeeUid} Get a specific account holder payee
 
-Create payee tool:
+Create payee tool:/
 PUT /api/v2/payees Create a payee
 
-Optional:
-Technical tool (not exposed to the user):
+## Spaces
 
-- /api/v2/account-holder
-- /api/v2/account-holder/name
+# Get single space tool
+
+GET /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid} Get a savings goal
+GET /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid}/photo Get the photo associated with a savings goal
+
+## Create single space tool
+
+PUT /api/v2/account/{accountUid}/savings-goals Create a savings goal
+
+🔒 Security: Requires the savings-goal:read OAuth scope
+
+## Update space tool
+
+PUT /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid} Update an existing goal
+
+## Delete a space tool
+
+DELETE
+/api/v2/account/{accountUid}/savings-goals/{savingsGoalUid} Delete a savings goal
+
+## Get spaces tool
+
+GET /api/v2/account/{accountUid}/savings-goals Get all savings goals
+Should offer:

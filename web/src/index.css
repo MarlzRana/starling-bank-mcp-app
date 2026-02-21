@@ -607,3 +607,715 @@
   margin: 0;
   padding: 0;
 }
+
+/* ── Payee Result Cards (create/update/delete) ────────── */
+
+.payee-result {
+  background-color: var(--color-bg);
+  padding: 1rem;
+  min-height: 100%;
+  box-sizing: border-box;
+  font-family: system-ui, sans-serif;
+}
+
+.payee-result__loading {
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: 2rem;
+}
+
+.payee-result__error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #c0392b;
+  padding: 1rem;
+  background: #fdf0ef;
+  border-radius: 0.75rem;
+}
+
+.payee-result__card {
+  background-color: var(--color-surface);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 4px rgba(var(--color-text-rgb), 0.08);
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: payee-result-enter 0.3s ease both;
+}
+
+@keyframes payee-result-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.payee-result__card--deleted {
+  opacity: 0.7;
+}
+
+.payee-result__header {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.payee-result__icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+}
+
+.payee-result__icon--success {
+  color: #27ae60;
+}
+
+.payee-result__icon--deleted {
+  color: var(--color-text-secondary);
+}
+
+.payee-result__info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.payee-result__name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.payee-result__name--deleted {
+  text-decoration: line-through;
+  color: var(--color-text-secondary);
+}
+
+.payee-result__status {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.payee-result__type-badge {
+  background-color: var(--color-bg);
+  color: var(--color-text-secondary);
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.payee-result__confirmation {
+  font-size: 0.82rem;
+  color: #27ae60;
+  padding: 0.5rem 0.75rem;
+  background: rgba(39, 174, 96, 0.08);
+  border-radius: 0.5rem;
+  text-align: center;
+}
+
+.payee-result__accounts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border-top: 1px solid var(--color-bg);
+  padding-top: 0.6rem;
+}
+
+.payee-result__account-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.8rem;
+}
+
+.payee-result__account-desc {
+  color: var(--color-text-secondary);
+}
+
+.payee-result__account-detail {
+  color: var(--color-text);
+  font-family: monospace;
+  font-size: 0.78rem;
+}
+
+/* ── Payees List Widget ───────────────────────────────── */
+
+.payees-container {
+  background-color: var(--color-bg);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 100%;
+  box-sizing: border-box;
+  font-family: system-ui, sans-serif;
+  position: relative;
+}
+
+.payees-loading {
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: 2rem;
+}
+
+.payees-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.payees-header__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.payee-action-add {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  transition: opacity 0.15s;
+}
+
+.payee-action-add:hover { opacity: 0.85; }
+
+.payee-action-add svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* ── Payee Card ── */
+
+.payee-card {
+  background-color: var(--color-surface);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 4px rgba(var(--color-text-rgb), 0.08);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  animation: payee-card-enter 0.3s ease both;
+}
+
+@keyframes payee-card-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.payee-card__row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+/* ── Avatar ── */
+
+.payee-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.payee-avatar-initials {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+/* ── Card Details ── */
+
+.payee-card__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.payee-card__name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.payee-card__type-badge {
+  background-color: var(--color-bg);
+  color: var(--color-text-secondary);
+  font-size: 0.6rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  align-self: flex-start;
+}
+
+.payee-card__account-inline {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  font-family: monospace;
+}
+
+.payee-card__account-count {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+/* ── Actions ── */
+
+.payee-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.payee-action-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  background: transparent;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  transition: background 0.15s, color 0.15s;
+}
+
+.payee-action-btn:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.payee-action-btn--delete:hover {
+  background: #fdf0ef;
+  color: #c0392b;
+}
+
+.payee-action-btn svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+/* ── Chevron ── */
+
+.payee-card__chevron {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--color-text-secondary);
+  transition: transform 0.3s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.payee-card__chevron--expanded {
+  transform: rotate(90deg);
+}
+
+/* ── Expandable accounts ── */
+
+.payee-accounts-list {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.payee-accounts-list--expanded {
+  max-height: 500px;
+}
+
+.payee-accounts-list__item {
+  padding: 0.5rem 0.75rem 0.5rem 3rem;
+  border-top: 1px solid var(--color-bg);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.8rem;
+}
+
+.payee-accounts-list__desc {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.payee-accounts-list__detail {
+  color: var(--color-text-secondary);
+  font-family: monospace;
+  font-size: 0.78rem;
+}
+
+/* ── Empty State ── */
+
+.payees-empty {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--color-text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.payees-empty__text {
+  font-size: 0.95rem;
+}
+
+/* ── Form ── */
+
+.payee-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: payee-view-enter 0.25s ease both;
+}
+
+@keyframes payee-view-enter {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.payee-form__back {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-accent);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0;
+}
+
+.payee-form__back svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.payee-form__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.payee-form__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.payee-form__label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.payee-form__input {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--color-toggle-off);
+  border-radius: 0.5rem;
+  font-size: 0.88rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.payee-form__input:focus {
+  border-color: var(--color-accent);
+}
+
+.payee-form__select {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--color-toggle-off);
+  border-radius: 0.5rem;
+  font-size: 0.88rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  outline: none;
+  cursor: pointer;
+}
+
+.payee-form__select:focus {
+  border-color: var(--color-accent);
+}
+
+/* Segmented control */
+
+.payee-form__segmented {
+  display: flex;
+  border: 1px solid var(--color-toggle-off);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.payee-form__segment {
+  flex: 1;
+  padding: 0.5rem;
+  border: none;
+  background: var(--color-surface);
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.payee-form__segment--active {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+/* ── Accounts form section ── */
+
+.payee-accounts-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-top: 1px solid var(--color-bg);
+  padding-top: 0.75rem;
+}
+
+.payee-accounts-form__title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.payee-accounts-form__entry {
+  background: var(--color-bg);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+}
+
+.payee-accounts-form__remove {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.15s, color 0.15s;
+}
+
+.payee-accounts-form__remove:hover {
+  background: #fdf0ef;
+  color: #c0392b;
+}
+
+.payee-accounts-form__remove:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.payee-accounts-form__remove svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.payee-accounts-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.payee-accounts-form__add {
+  background: none;
+  border: 1px dashed var(--color-toggle-off);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-accent);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.payee-accounts-form__add:hover {
+  border-color: var(--color-accent);
+}
+
+.payee-accounts-form__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.payee-accounts-form__checkbox input[type="checkbox"] {
+  accent-color: var(--color-accent);
+}
+
+/* ── Submit button ── */
+
+.payee-form__submit {
+  padding: 0.65rem 1.25rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease, opacity 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.payee-form__submit:hover { opacity: 0.9; }
+
+.payee-form__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.payee-form__submit--success {
+  background: #27ae60;
+}
+
+/* ── Spinner ── */
+
+.payee-spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: payee-spin 0.6s linear infinite;
+}
+
+@keyframes payee-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Delete Overlay ── */
+
+.payee-delete-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(var(--color-text-rgb), 0.35);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  animation: payee-overlay-enter 0.2s ease both;
+  padding: 1rem;
+}
+
+@keyframes payee-overlay-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.payee-delete-dialog {
+  background: var(--color-surface);
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 32px rgba(var(--color-text-rgb), 0.18);
+  padding: 1.25rem;
+  max-width: 20rem;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.payee-delete-dialog__title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.35;
+}
+
+.payee-delete-dialog__info {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.payee-delete-dialog__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.payee-delete-cancel {
+  flex: 1;
+  padding: 0.55rem;
+  border: 1px solid var(--color-toggle-off);
+  border-radius: 0.5rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.payee-delete-cancel:hover {
+  background: var(--color-bg);
+}
+
+.payee-delete-confirm {
+  flex: 1;
+  padding: 0.55rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #c0392b;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.payee-delete-confirm:hover { opacity: 0.9; }
+.payee-delete-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
