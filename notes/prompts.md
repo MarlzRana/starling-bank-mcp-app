@@ -36,3 +36,6 @@ Card tool (slider toggles):
 - PUT /api/v2/cards/{cardUid}/controls/online-enabled Update online payments control
 - PUT /api/v2/cards/{cardUid}/controls/pos-enabled Update card present payments (contactless and chip and pin) control
 - GET /api/v2/cards Get all the cards for an account holder
+
+Prompt 3:
+/mcp-app-builder I have attached an image of what the current UI looks like. As you can see we present the card and then the controls underneath. Please instead just present the card, and a small footer saying "Adjust card controls by clicking/tapping your card". Then add the ability to click the card, and it flip around (make the animation), and it present the list of card controls of the card and their toggles (which we can toggle and off and we update relevant controls appropriately). In terms of design, make the back of the card look like the second image I have attached (get relevant information from the tool input and get-accounts tool, and for the name use this name "Marlin Ranasinghe", and use the contactless logo), and then in the same way as when the card is locked, put a black tint on it, and the card controls and their toggles on top of the black tint.

@@ -42,6 +42,9 @@ Attachment:
 
 - GET /api/v2/feed/account/{accountUid}/category/{categoryUid}/{feedItemUid}/attachments Fetches the list of items attached to a feed item
 
+Payees:
+GET /api/v2/payees Get an account holder's payees
+
 Optional:
 Technical tool (not exposed to the user):
 
