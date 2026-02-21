@@ -1,5 +1,19 @@
 @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,600&display=swap");
 
+/* ── Color palette ───────────────────────────────────── */
+
+:root {
+  --color-accent: #cc785c;       /* Antique Brass  — accent / card body */
+  --color-accent-light: #d4896a; /* Antique Brass light — card gradient start */
+  --color-accent-dark: #b86448;  /* Antique Brass dark  — card gradient end */
+  --color-text: #141413;         /* Cod Gray        — primary text */
+  --color-text-secondary: #828179; /* Friar Gray    — secondary text */
+  --color-bg: #f0efea;           /* Cararra         — page background */
+  --color-surface: #ffffff;      /* White           — surface */
+  --color-toggle-off: #d1cfc9;   /* Toggle off background */
+  --color-text-rgb: 20, 20, 19;  /* Cod Gray as RGB channels for rgba() */
+}
+
 .container {
   display: flex;
   justify-content: center;
@@ -156,7 +170,7 @@
 /* ── Accounts Widget ─────────────────────────────────── */
 
 .accounts-container {
-  background-color: #f0efea; /* Cararra */
+  background-color: var(--color-bg);
   padding: 1rem;
   display: flex;
   flex-direction: column;
@@ -167,15 +181,15 @@
 }
 
 .accounts-loading {
-  color: #828179; /* Friar Gray */
+  color: var(--color-text-secondary);
   text-align: center;
   padding: 2rem;
 }
 
 .account-card {
-  background-color: #ffffff; /* White */
+  background-color: var(--color-surface);
   border-radius: 0.75rem;
-  box-shadow: 0 1px 4px rgba(20, 20, 19, 0.08);
+  box-shadow: 0 1px 4px rgba(var(--color-text-rgb), 0.08);
   padding: 1rem 1.25rem;
   display: flex;
   flex-direction: column;
@@ -192,13 +206,13 @@
 .account-name {
   font-size: 1rem;
   font-weight: 600;
-  color: #141413; /* Cod Gray */
+  color: var(--color-text);
   flex: 1;
 }
 
 .account-type-badge {
-  background-color: #f0efea; /* Cararra */
-  color: #828179; /* Friar Gray */
+  background-color: var(--color-bg);
+  color: var(--color-text-secondary);
   font-size: 0.7rem;
   font-weight: 500;
   text-transform: uppercase;
@@ -208,7 +222,7 @@
 }
 
 .account-currency {
-  color: #828179; /* Friar Gray */
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   font-weight: 500;
 }
@@ -222,18 +236,18 @@
 .balance-amount {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #cc785c; /* Antique Brass */
+  color: var(--color-accent);
   line-height: 1.1;
 }
 
 .balance-label {
   font-size: 0.75rem;
-  color: #828179; /* Friar Gray */
+  color: var(--color-text-secondary);
 }
 
 .balance-secondary {
   font-size: 0.85rem;
-  color: #141413; /* Cod Gray */
+  color: var(--color-text);
   margin-top: 0.25rem;
 }
 
@@ -241,7 +255,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  border-top: 1px solid #f0efea; /* Cararra */
+  border-top: 1px solid var(--color-bg);
   padding-top: 0.75rem;
 }
 
@@ -254,14 +268,14 @@
 }
 
 .identifier-label {
-  color: #828179; /* Friar Gray */
+  color: var(--color-text-secondary);
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .identifier-value {
-  color: #141413; /* Cod Gray */
+  color: var(--color-text);
   font-family: monospace;
   font-size: 0.8rem;
 }
@@ -269,7 +283,7 @@
 /* ── Cards Widget ─────────────────────────────────── */
 
 .cards-page {
-  background-color: #f0efea; /* Cararra */
+  background-color: var(--color-bg);
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
@@ -280,7 +294,7 @@
 }
 
 .cards-loading {
-  color: #828179; /* Friar Gray */
+  color: var(--color-text-secondary);
   text-align: center;
   padding: 2rem;
 }
@@ -298,9 +312,9 @@
 .starling-card {
   background: linear-gradient(
     145deg,
-    #d4896a 0%,
-    #cc785c 45%,
-    #b86448 100%
+    var(--color-accent-light) 0%,
+    var(--color-accent) 45%,
+    var(--color-accent-dark) 100%
   );
   border-radius: 18px;
   width: 100%;
@@ -311,8 +325,8 @@
   flex-direction: column;
   justify-content: space-between;
   box-shadow:
-    0 10px 36px rgba(20, 20, 19, 0.28),
-    0 2px 8px rgba(20, 20, 19, 0.16);
+    0 10px 36px rgba(var(--color-text-rgb), 0.28),
+    0 2px 8px rgba(var(--color-text-rgb), 0.16);
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
@@ -342,7 +356,7 @@
   font-size: clamp(1.1rem, 5vw, 1.55rem);
   font-weight: 800;
   letter-spacing: 0.06em;
-  color: #141413; /* Cod Gray */
+  color: var(--color-text);
   line-height: 1;
 }
 
@@ -372,7 +386,7 @@
 .starling-card__number {
   font-size: clamp(0.85rem, 3.5vw, 1.05rem);
   font-weight: 600;
-  color: #141413; /* Cod Gray */
+  color: var(--color-text);
   letter-spacing: 0.12em;
   font-family: monospace;
 }
@@ -385,7 +399,7 @@
 
 .starling-card__brand-label {
   font-size: clamp(0.55rem, 2vw, 0.7rem);
-  color: #141413;
+  color: var(--color-text);
   text-align: right;
   line-height: 1.3;
   font-weight: 500;
@@ -403,21 +417,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(20, 20, 19, 0.48);
+  background: rgba(var(--color-text-rgb), 0.48);
   border-radius: inherit;
   font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: 0.2em;
-  color: #f0efea;
+  color: var(--color-bg);
   backdrop-filter: blur(2px);
 }
 
 /* ── Controls list ── */
 
 .card-controls {
-  background-color: #ffffff;
+  background-color: var(--color-surface);
   border-radius: 0.75rem;
-  box-shadow: 0 1px 4px rgba(20, 20, 19, 0.08);
+  box-shadow: 0 1px 4px rgba(var(--color-text-rgb), 0.08);
   overflow: hidden;
 }
 
@@ -426,7 +440,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid #f0efea;
+  border-bottom: 1px solid var(--color-bg);
   transition: background 0.12s;
 }
 
@@ -440,7 +454,7 @@
 
 .card-toggle__label {
   font-size: 0.88rem;
-  color: #141413;
+  color: var(--color-text);
   font-weight: 500;
 }
 
@@ -450,7 +464,7 @@
   width: 2.6rem;
   height: 1.45rem;
   border-radius: 999px;
-  background: #d1cfc9;
+  background: var(--color-toggle-off);
   border: none;
   cursor: pointer;
   transition: background 0.2s;
@@ -459,7 +473,7 @@
 }
 
 .card-toggle__switch--on {
-  background: #cc785c; /* Antique Brass */
+  background: var(--color-accent);
 }
 
 .card-toggle__switch:disabled {
@@ -473,8 +487,8 @@
   width: 1.1rem;
   height: 1.1rem;
   border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 1px 4px rgba(20, 20, 19, 0.22);
+  background: var(--color-surface);
+  box-shadow: 0 1px 4px rgba(var(--color-text-rgb), 0.22);
   transition: transform 0.2s;
 }
 

@@ -4,13 +4,6 @@ import { useState } from 'react';
 import { mountWidget } from 'skybridge/web';
 import { useToolInfo, useCallTool } from '../helpers.js';
 
-// Claude Desktop color palette
-// #CC785C Antique Brass  — accent / card body
-// #828179 Friar Gray     — secondary text
-// #F0EFEA Cararra        — page background
-// #FFFFFF White          — surface
-// #141413 Cod Gray       — primary text
-
 type ControlKey =
   | 'atm-enabled'
   | 'enabled'
