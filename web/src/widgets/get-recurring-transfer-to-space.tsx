@@ -185,7 +185,6 @@ function SpaceListPhoto({
 type FlowState =
   | "account"
   | "space"
-  | "detail"
   | "setup-form"
   | "setup-submitting"
   | "setup-success"
@@ -265,7 +264,7 @@ function GetRecurringInner({
   const [transfers, setTransfers] =
     useState<Record<string, RecurringTransfer>>(recurringTransfers);
   const [flowState, setFlowState] = useState<FlowState>(
-    preSelectedSpace ? "detail" : preSelectedAccount ? "space" : "account",
+    preSelectedSpace ? "space" : preSelectedAccount ? "space" : "account",
   );
 
   const recurringTransfer = selectedSpace
@@ -482,7 +481,7 @@ function GetRecurringInner({
             Back
           </button>
 
-          <h2 className="space-form__title">Select Space</h2>
+          <h2 className="space-form__title">Recurring Transfers</h2>
 
           {selectedAccount.spaces.length === 0 ? (
             <div
@@ -495,35 +494,158 @@ function GetRecurringInner({
               No spaces found for this account
             </div>
           ) : (
-            selectedAccount.spaces.map((space) => (
-              <div
-                className="space-list-item"
-                key={space.savingsGoalUid}
-                onClick={() => {
-                  setSelectedSpace(space);
-                  setFlowState("detail");
-                }}
-              >
-                <SpaceListPhoto
-                  name={space.name}
-                  image={images[space.savingsGoalUid]}
-                />
-                <div className="space-list-item__info">
-                  <span className="space-list-item__name">{space.name}</span>
-                  <span className="space-list-item__saved">
-                    {formatAmount(
-                      space.totalSaved.currency,
-                      space.totalSaved.minorUnits,
-                    )}
-                  </span>
-                </div>
-                <span
-                  className={`space-card__state-badge${space.state === "ACTIVE" ? " space-card__state-badge--active" : ""}`}
+            [...selectedAccount.spaces].sort((a, b) => {
+              const aHas = transfers[a.savingsGoalUid] ? 0 : 1;
+              const bHas = transfers[b.savingsGoalUid] ? 0 : 1;
+              return aHas - bHas;
+            }).map((space) => {
+              const transfer = transfers[space.savingsGoalUid] ?? null;
+
+              if (transfer) {
+                return (
+                  <div
+                    className="space-list-item space-list-item--expanded"
+                    key={space.savingsGoalUid}
+                  >
+                    <div className="space-list-item__header">
+                      <SpaceListPhoto
+                        name={space.name}
+                        image={images[space.savingsGoalUid]}
+                      />
+                      <div className="space-list-item__info">
+                        <span className="space-list-item__name">
+                          {space.name}
+                        </span>
+                        <span className="space-list-item__saved">
+                          {formatAmount(
+                            space.totalSaved.currency,
+                            space.totalSaved.minorUnits,
+                          )}
+                        </span>
+                      </div>
+                      <button
+                        className="payee-action-add"
+                        style={{ background: "#dc2626" }}
+                        onClick={() => {
+                          setSelectedSpace(space);
+                          setFlowState("delete-confirm");
+                        }}
+                        type="button"
+                        title="Delete recurring transfer"
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="space-list-item__transfer-details">
+                      <div className="space-list-item__transfer-row">
+                        <span className="space-list-item__transfer-label">
+                          Amount
+                        </span>
+                        <span className="space-list-item__transfer-amount">
+                          {formatAmount(
+                            transfer.currencyAndAmount.currency,
+                            transfer.currencyAndAmount.minorUnits,
+                          )}
+                        </span>
+                      </div>
+                      <div className="space-list-item__transfer-row">
+                        <span className="space-list-item__transfer-label">
+                          Frequency
+                        </span>
+                        <span className="space-list-item__transfer-value">
+                          {describeFrequency(transfer.recurrenceRule)}
+                        </span>
+                      </div>
+                      {transfer.nextPaymentDate && (
+                        <div className="space-list-item__transfer-row">
+                          <span className="space-list-item__transfer-label">
+                            Next Payment
+                          </span>
+                          <span className="space-list-item__transfer-value">
+                            {formatDate(transfer.nextPaymentDate)}
+                          </span>
+                        </div>
+                      )}
+                      <div className="space-list-item__transfer-row">
+                        <span className="space-list-item__transfer-label">
+                          Start Date
+                        </span>
+                        <span className="space-list-item__transfer-value">
+                          {formatDate(transfer.recurrenceRule.startDate)}
+                        </span>
+                      </div>
+                      {transfer.reference && (
+                        <div className="space-list-item__transfer-row">
+                          <span className="space-list-item__transfer-label">
+                            Reference
+                          </span>
+                          <span className="space-list-item__transfer-value">
+                            {transfer.reference}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div
+                  className="space-list-item"
+                  key={space.savingsGoalUid}
+                  style={{ cursor: "default" }}
                 >
-                  {space.state}
-                </span>
-              </div>
-            ))
+                  <SpaceListPhoto
+                    name={space.name}
+                    image={images[space.savingsGoalUid]}
+                  />
+                  <div className="space-list-item__info">
+                    <span className="space-list-item__name">{space.name}</span>
+                    <span className="space-list-item__saved">
+                      {formatAmount(
+                        space.totalSaved.currency,
+                        space.totalSaved.minorUnits,
+                      )}
+                    </span>
+                  </div>
+                  <button
+                    className="payee-action-add"
+                    onClick={() => {
+                      setSelectedSpace(space);
+                      setFlowState("setup-form");
+                    }}
+                    type="button"
+                    title="Set up recurring transfer"
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
@@ -546,7 +668,7 @@ function GetRecurringInner({
             className="payee-form__back"
             onClick={() => {
               resetSetupForm();
-              setFlowState("detail");
+              setFlowState("space");
             }}
             type="button"
           >
@@ -793,7 +915,7 @@ function GetRecurringInner({
               className="transfer-overlay__done"
               onClick={() => {
                 resetSetupForm();
-                setFlowState("detail");
+                setFlowState("space");
               }}
             >
               Done
@@ -817,7 +939,7 @@ function GetRecurringInner({
             className="payee-form__back"
             onClick={() => {
               setError(null);
-              setFlowState("detail");
+              setFlowState("space");
             }}
             type="button"
           >
@@ -957,7 +1079,7 @@ function GetRecurringInner({
               className="transfer-overlay__done"
               onClick={() => {
                 setError(null);
-                setFlowState("detail");
+                setFlowState("space");
               }}
             >
               Done
@@ -968,158 +1090,7 @@ function GetRecurringInner({
     );
   }
 
-  // Detail view
-  return (
-    <div className="payees-container" style={{ position: "relative" }}>
-      <div className="space-form">
-        <button
-          className="payee-form__back"
-          onClick={() => {
-            setSelectedSpace(null);
-            setFlowState("space");
-          }}
-          type="button"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Back
-        </button>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "0.5rem",
-          }}
-        >
-          <h2 className="space-form__title" style={{ margin: 0 }}>
-            Recurring Transfer to {selectedSpace?.name}
-          </h2>
-          {!recurringTransfer ? (
-            <button
-              className="payee-action-add"
-              onClick={() => setFlowState("setup-form")}
-              type="button"
-              title="Set up recurring transfer"
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </button>
-          ) : (
-            <button
-              className="payee-action-add"
-              style={{ background: "#dc2626" }}
-              onClick={() => setFlowState("delete-confirm")}
-              type="button"
-              title="Delete recurring transfer"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-              </svg>
-            </button>
-          )}
-        </div>
-
-        {recurringTransfer ? (
-          <div className="recurring-transfer-card">
-            <div className="recurring-transfer-card__row">
-              <span className="recurring-transfer-card__label">Amount</span>
-              <span className="recurring-transfer-card__amount">
-                {formatAmount(
-                  recurringTransfer.currencyAndAmount.currency,
-                  recurringTransfer.currencyAndAmount.minorUnits,
-                )}
-              </span>
-            </div>
-            <div className="recurring-transfer-card__row">
-              <span className="recurring-transfer-card__label">Frequency</span>
-              <span className="recurring-transfer-card__value">
-                {describeFrequency(recurringTransfer.recurrenceRule)}
-              </span>
-            </div>
-            {recurringTransfer.nextPaymentDate && (
-              <div className="recurring-transfer-card__row">
-                <span className="recurring-transfer-card__label">
-                  Next Payment
-                </span>
-                <span className="recurring-transfer-card__value">
-                  {formatDate(recurringTransfer.nextPaymentDate)}
-                </span>
-              </div>
-            )}
-            <div className="recurring-transfer-card__row">
-              <span className="recurring-transfer-card__label">Start Date</span>
-              <span className="recurring-transfer-card__value">
-                {formatDate(recurringTransfer.recurrenceRule.startDate)}
-              </span>
-            </div>
-            {recurringTransfer.recurrenceRule.untilDate && (
-              <div className="recurring-transfer-card__row">
-                <span className="recurring-transfer-card__label">Until</span>
-                <span className="recurring-transfer-card__value">
-                  {formatDate(recurringTransfer.recurrenceRule.untilDate)}
-                </span>
-              </div>
-            )}
-            {recurringTransfer.recurrenceRule.count && (
-              <div className="recurring-transfer-card__row">
-                <span className="recurring-transfer-card__label">
-                  Payments
-                </span>
-                <span className="recurring-transfer-card__value">
-                  {recurringTransfer.recurrenceRule.count} total
-                </span>
-              </div>
-            )}
-            {recurringTransfer.reference && (
-              <div className="recurring-transfer-card__row">
-                <span className="recurring-transfer-card__label">
-                  Reference
-                </span>
-                <span className="recurring-transfer-card__value">
-                  {recurringTransfer.reference}
-                </span>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="space-empty">
-            No recurring transfer set up for this space.
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  return null;
 }
 
 export default GetRecurringTransferToSpace;
