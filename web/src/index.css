@@ -814,6 +814,17 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+.payee-card--clickable {
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.payee-card--clickable:hover {
+  box-shadow: 0 2px 8px rgba(var(--color-text-rgb), 0.14);
+  border-color: var(--color-accent);
+}
+
 .payee-card__row {
   display: flex;
   align-items: center;
@@ -2064,7 +2075,8 @@
   padding: 0.75rem;
   cursor: pointer;
   border-radius: 0.75rem;
-  transition: background 0.15s, box-shadow 0.15s;
+  border: 2px solid transparent;
+  transition: background 0.15s, box-shadow 0.15s, border-color 0.15s;
   background: var(--color-surface);
   box-shadow: 0 1px 4px rgba(var(--color-text-rgb), 0.08);
   animation: payee-card-enter 0.3s ease both;
@@ -2072,6 +2084,7 @@
 
 .space-list-item:hover {
   box-shadow: 0 2px 8px rgba(var(--color-text-rgb), 0.14);
+  border-color: var(--color-accent);
 }
 
 .space-list-item__photo {

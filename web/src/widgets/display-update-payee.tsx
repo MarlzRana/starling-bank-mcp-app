@@ -50,8 +50,7 @@ function PayeeSelector({
           return (
             <div
               key={payee.payeeUid}
-              className="payee-card"
-              style={{ cursor: "pointer" }}
+              className="payee-card payee-card--clickable"
               onClick={() => onSelect(payee)}
             >
               <div className="payee-card__row">
