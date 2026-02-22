@@ -69,8 +69,6 @@ GET /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid}/photo Get the ph
 
 PUT /api/v2/account/{accountUid}/savings-goals Create a savings goal
 
-🔒 Security: Requires the savings-goal:read OAuth scope
-
 ## Update space tool
 
 PUT /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid} Update an existing goal

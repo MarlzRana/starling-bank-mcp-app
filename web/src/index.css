@@ -1517,3 +1517,496 @@
   border-radius: 999px;
   padding: 0.15rem 0.5rem;
 }
+
+/* ── Space Widget ─────────────────────────────────────── */
+
+.space-container {
+  background-color: var(--color-bg);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 100%;
+  box-sizing: border-box;
+  font-family: system-ui, sans-serif;
+  position: relative;
+}
+
+.space-loading {
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: 2rem;
+}
+
+/* ── Space Card ── */
+
+.space-card {
+  background-color: var(--color-surface);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 4px rgba(var(--color-text-rgb), 0.08);
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: payee-card-enter 0.3s ease both;
+}
+
+.space-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.space-card__photo {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.space-card__photo-initials {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.space-card__name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-text);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.space-card__state-badge {
+  background-color: var(--color-bg);
+  color: var(--color-text-secondary);
+  font-size: 0.6rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.space-card__state-badge--active {
+  background-color: rgba(39, 174, 96, 0.1);
+  color: #27ae60;
+}
+
+/* ── Space Amounts ── */
+
+.space-card__amounts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.space-card__saved {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-accent);
+  line-height: 1.1;
+}
+
+.space-card__target {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+/* ── Space Progress Bar ── */
+
+.space-card__progress {
+  width: 100%;
+  height: 0.5rem;
+  background: var(--color-bg);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 0.15rem;
+}
+
+.space-card__progress-bar {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+
+.space-card__percentage {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+/* ── Space Actions ── */
+
+.space-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-top: 1px solid var(--color-bg);
+  padding-top: 0.75rem;
+}
+
+.space-action-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  background: transparent;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  transition: background 0.15s, color 0.15s;
+}
+
+.space-action-btn:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.space-action-btn svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.space-action-btn--text {
+  width: auto;
+  height: auto;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  gap: 0.35rem;
+  color: var(--color-accent);
+  border-radius: 0.5rem;
+}
+
+.space-action-btn--text:hover {
+  background: rgba(var(--color-text-rgb), 0.04);
+  color: var(--color-accent);
+}
+
+/* ── Space Transaction Row ── */
+
+.space-transaction {
+  background-color: var(--color-surface);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 4px rgba(var(--color-text-rgb), 0.08);
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  animation: payee-card-enter 0.3s ease both;
+}
+
+.space-transaction__direction {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.space-transaction__direction--in {
+  background: rgba(39, 174, 96, 0.1);
+  color: #27ae60;
+}
+
+.space-transaction__direction--out {
+  background: rgba(192, 57, 43, 0.1);
+  color: #c0392b;
+}
+
+.space-transaction__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.space-transaction__reference {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.space-transaction__date {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.space-transaction__amount {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+
+.space-transaction__amount--in {
+  color: #27ae60;
+}
+
+.space-transaction__amount--out {
+  color: #c0392b;
+}
+
+.space-transaction__category {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+}
+
+/* ── Space Transactions Header (standalone view) ── */
+
+.space-transactions-header {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding-bottom: 0.5rem;
+}
+
+.space-transactions-header__photo {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.space-transactions-header__photo-initials {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.space-transactions-header__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.space-transactions-header__name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.space-transactions-header__saved {
+  font-size: 0.85rem;
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.space-transactions-header__count {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}
+
+.space-empty {
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.9rem;
+}
+
+/* ── Space Form ─────────────────────────────────────── */
+
+.space-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: payee-view-enter 0.25s ease both;
+}
+
+.space-form__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.space-form__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.space-form__label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.space-form__input {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--color-toggle-off);
+  border-radius: 0.5rem;
+  font-size: 0.88rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.space-form__input:focus {
+  border-color: var(--color-accent);
+}
+
+.space-form__submit {
+  padding: 0.65rem 1.25rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s ease, opacity 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.space-form__submit:hover { opacity: 0.9; }
+
+.space-form__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.space-form__submit--success {
+  background: #27ae60;
+}
+
+/* ── Space Photo Upload ── */
+
+.space-form__photo-upload {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  border: 2px dashed var(--color-toggle-off);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  color: var(--color-accent);
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: border-color 0.15s, background 0.15s;
+  text-align: center;
+}
+
+.space-form__photo-upload:hover {
+  border-color: var(--color-accent);
+  background: rgba(var(--color-text-rgb), 0.02);
+}
+
+.space-form__photo-preview {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 0.5rem;
+  object-fit: cover;
+  border: 1px solid var(--color-toggle-off);
+}
+
+.space-form__photo-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #c0392b;
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0;
+  transition: opacity 0.15s;
+}
+
+.space-form__photo-remove:hover {
+  opacity: 0.7;
+}
+
+/* ── Space Account Selector ── */
+
+.space-account-card {
+  background-color: var(--color-surface);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 4px rgba(var(--color-text-rgb), 0.08);
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  border: 2px solid transparent;
+  animation: payee-card-enter 0.3s ease both;
+}
+
+.space-account-card:hover {
+  box-shadow: 0 2px 8px rgba(var(--color-text-rgb), 0.14);
+  border-color: var(--color-accent);
+}
+
+.space-account-card__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.space-account-card__name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.space-account-card__balance {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}

@@ -163,3 +163,98 @@ Future:
 - In the payee accounts view (where payees have more than 1 payee accounts under them), make this functionality available as well
 - For payees with multiple payee accounts, just make this available at the payee account level
 - **Keep in mind `{accountUid}` is actually the payeeAccountUid. This is an API naming mistake. Make the tools use payeeAccountUid for consistency.**
+
+Prompt 9:
+
+## Mission
+
+- Support the ability for users to interact with their spaces in their Starling Bank app
+
+## Space definition
+
+A Space is a pot of money within your app, kept separate from your balance. It’s great for getting expenses neatly sorted and under your control.
+
+## Important technical information
+
+- A space uid/savings goal uid is a category uuid under the hood
+- The API calls spaces savings goals but in the app it's called a space. Use the terminology of a space and map eg. concepts like like a space uuid to a savings goal uuid under the hood
+
+## Tools to create
+
+- `get-space` get a single space given an account uuid and space uuid. This should present the space photo, the relevant data about the space and give the user the ability to click the space and see the transaction in that space between now and 3 years ago. Make the get-transactions a separate tool for now that only MCP apps to use under the hood
+- `create-space` will allow the user to create a space and then upon success present UI confirming the creation and the details used
+- `display-create-space` will present a UI allow the user to pick an account (use the `get-accounts` with the `useCallTool` hook under the hood). It should optionally take in the same parameters as `create-space` as arguments to pre-fill the create space form with, in a similar way to `create-payee`. Do not make the user manually enter an account uuid. Use the `get-accounts` tool via the `useCallTool` hook to create an account selector, in which you grab the account uuid to make the space under. Present the same confirmation UI as the `create-space` tool does - share UI if useful
+
+## Relevant APIs
+
+GET /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid} Get a savings goal
+GET /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid}/photo Get the photo associated with a savings goal
+GET /api/v2/feed/account/{accountUid}/category/{categoryUid}/transactions-between
+PUT /api/v2/account/{accountUid}/savings-goals Create a savings goal
+
+## Guidance
+
+- **Use a team and assign team members work - do not do the entire thing yourself - act as a team lead**
+- Read @swagger.json to understand the Starling API
+- The other savings goals APIs will be implemented in a follow up
+
+Prompt 10:
+
+## Mission
+
+- Support the ability for users to see all their spaces by calling one tool
+
+## Space definition
+
+A Space is a pot of money within your app, kept separate from your balance. It’s great for getting expenses neatly sorted and under your control.
+
+## Important technical information
+
+- A space uid/savings goal uid is a category uuid under the hood
+- The API calls spaces savings goals but in the app it's called a space. Use the terminology of a space and map eg. concepts like like a space uuid to a savings goal uuid under the hood
+
+## Tool to create
+
+- `get-spaces` will return you all the spaces associated with an account. The user should be presented with a list of their spaces, and then they should be able to click the space, to get the same view as `get-space` returns. In the top level view that presents all the spaced under a given account make sure to also present the space photo.
+
+## Relevant APIs
+
+GET /api/v2/account/{accountUid}/savings-goals Get all savings goals
+GET /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid}/photo Get the photo associated with a savings goal
+GET /api/v2/feed/account/{accountUid}/category/{categoryUid}/transactions-between
+
+## Guidance
+
+- Read @swagger.json to understand the Starling API
+- The other savings goals APIs will be implemented in a follow up
+
+Prompt 11:
+
+## Mission
+
+- Support the ability for users to update their spaces
+
+## Space definition
+
+A Space is a pot of money within your app, kept separate from your balance. It’s great for getting expenses neatly sorted and under your control.
+
+## Important technical information
+
+- A space uid/savings goal uid is a category uuid under the hood
+- The API calls spaces savings goals but in the app it's called a space. Use the terminology of a space and map eg. concepts like like a space uuid to a savings goal uuid under the hood
+
+## Tool to create
+
+- `get-spaces` will return you all the spaces associated with an account. The user should be presented with a list of their spaces, and then they should be able to click the space, to get the same view as `get-space` returns. In the top level view that presents all the spaced under a given account make sure to also present the space photo.
+
+## Relevant APIs
+
+GET /api/v2/account/{accountUid}/savings-goals Get all savings goals
+GET /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid}/photo Get the photo associated with a savings goal
+GET /api/v2/feed/account/{accountUid}/category/{categoryUid}/transactions-between
+
+Future prompt:
+
+- `update-space` allows the user to update a space, and then upon success present UI confirming the new space details and then upon success present UI confirming the update and the details used
+- `display-update-space` will present a UI allow the user to pick an account (use the `get-accounts` with the `useCallTool` hook under the hood). It should optionally take in the same parameters as `update-space` as arguments to pre-fill the create space form with, in a similar way to `create-payee`. Do not make the user manually enter an account uuid. Use the `get-accounts` tool via the `useCallTool` hook to create an account selector, in which you grab the account uuid to make the space under. Do not make the user manually enter an space uuid. Use the `get-` tool via the `useCallTool` hook to create an account selector, in which you grab the account uuid to make the space under.
+  Present the same confirmation UI as the `update-space` tool does - share UI if useful

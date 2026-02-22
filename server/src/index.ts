@@ -748,6 +748,249 @@ const server = new McpServer(
         };
       }
     },
+  )
+  .registerWidget(
+    'get-space',
+    { description: 'Starling Bank Space' },
+    {
+      description:
+        'Fetch a single Starling Bank Space (savings goal) with its photo and data.',
+      inputSchema: {
+        accountUid: z.string().uuid().describe('The account UID'),
+        spaceUid: z.string().uuid().describe('The space (savings goal) UID'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async (input) => {
+      try {
+        const [goalRes, photoRes] = await Promise.all([
+          fetch(
+            `${STARLING_API_BASE_URL}/api/v2/account/${input.accountUid}/savings-goals/${input.spaceUid}`,
+            { headers: authHeaders },
+          ),
+          fetch(
+            `${STARLING_API_BASE_URL}/api/v2/account/${input.accountUid}/savings-goals/${input.spaceUid}/photo`,
+            { headers: { ...authHeaders, Accept: 'image/png' } },
+          ).catch(() => null),
+        ]);
+
+        if (!goalRes.ok) {
+          throw new Error(
+            `Failed to fetch space: ${goalRes.status} ${goalRes.statusText}`,
+          );
+        }
+        const goal = await goalRes.json();
+
+        const images: Record<string, string> = {};
+        if (photoRes && photoRes.ok) {
+          try {
+            const buffer = await photoRes.arrayBuffer();
+            const base64 = Buffer.from(buffer).toString('base64');
+            images[input.spaceUid] = `data:image/png;base64,${base64}`;
+          } catch {
+            // photo unavailable — ignore
+          }
+        }
+
+        const result = { ...goal, accountUid: input.accountUid };
+
+        return {
+          structuredContent: result,
+          _meta: { images },
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
+    'get-space-transactions',
+    { description: 'Space Transactions' },
+    {
+      description:
+        'Fetch transactions for a Starling Bank Space between now and 3 years ago.',
+      inputSchema: {
+        accountUid: z.string().uuid().describe('The account UID'),
+        spaceUid: z
+          .string()
+          .uuid()
+          .describe('The space UID (used as categoryUid)'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async (input) => {
+      try {
+        const now = new Date();
+        const threeYearsAgo = new Date(now);
+        threeYearsAgo.setFullYear(now.getFullYear() - 3);
+
+        const params = new URLSearchParams({
+          minTransactionTimestamp: threeYearsAgo.toISOString(),
+          maxTransactionTimestamp: now.toISOString(),
+        });
+
+        const res = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/feed/account/${input.accountUid}/category/${input.spaceUid}/transactions-between?${params}`,
+          { headers: authHeaders },
+        );
+
+        if (!res.ok) {
+          throw new Error(
+            `Failed to fetch transactions: ${res.status} ${res.statusText}`,
+          );
+        }
+        const data = await res.json();
+        const result = {
+          feedItems: data.feedItems ?? [],
+          accountUid: input.accountUid,
+          spaceUid: input.spaceUid,
+        };
+
+        return {
+          structuredContent: result,
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
+    'create-space',
+    { description: 'Create a Space' },
+    {
+      description:
+        'INTERNAL — do NOT call this tool directly. It is used internally by the display-create-space form widget. ' +
+        'To create a space, call display-create-space instead.',
+      _meta: { ui: { visibility: ['app'] } },
+      inputSchema: {
+        accountUid: z.string().uuid().describe('The account UID'),
+        name: z.string().describe('Name of the space'),
+        currency: z
+          .string()
+          .length(3)
+          .describe('ISO 4217 currency code (e.g. GBP)'),
+        target: z
+          .object({
+            currency: z.string().length(3).describe('Currency code'),
+            minorUnits: z.number().describe('Target amount in minor units'),
+          })
+          .optional()
+          .describe('Optional savings target'),
+        base64EncodedPhoto: z
+          .string()
+          .optional()
+          .describe('Optional base64-encoded photo'),
+      },
+      annotations: { readOnlyHint: false },
+    },
+    async (input) => {
+      try {
+        const body: Record<string, unknown> = {
+          name: input.name,
+          currency: input.currency,
+        };
+        if (input.target) body.target = input.target;
+        if (input.base64EncodedPhoto)
+          body.base64EncodedPhoto = input.base64EncodedPhoto;
+
+        const res = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/account/${input.accountUid}/savings-goals`,
+          {
+            method: 'PUT',
+            headers: { ...authHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          },
+        );
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(
+            errorData.error ??
+              `Failed to create space: ${res.status} ${res.statusText}`,
+          );
+        }
+        const data = await res.json();
+
+        return {
+          structuredContent: {
+            success: true,
+            savingsGoalUid: data.savingsGoalUid,
+            name: input.name,
+            currency: input.currency,
+            target: input.target,
+          },
+          content: [
+            {
+              type: 'text' as const,
+              text: `Space "${input.name}" created successfully.`,
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
+    'display-create-space',
+    { description: 'Create Space Form' },
+    {
+      description:
+        'IMMEDIATELY call this tool when the user wants to create a Space (savings goal) — do not ask questions first, show the form right away. ' +
+        'Pre-fill any fields you already know from the conversation. All parameters are optional; the user completes the rest in the form UI. ' +
+        'Do NOT call create-space directly — it is an internal tool used by this form. ' +
+        'After the user submits, you will receive a follow-up message confirming the space was created.',
+      inputSchema: {
+        name: z.string().optional().describe('Name of the space'),
+        currency: z
+          .string()
+          .length(3)
+          .optional()
+          .describe('ISO 4217 currency code (e.g. GBP)'),
+        targetMinorUnits: z
+          .number()
+          .optional()
+          .describe('Optional target amount in minor units'),
+        base64EncodedPhoto: z
+          .string()
+          .optional()
+          .describe('Optional base64-encoded photo'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async (input) => {
+      return {
+        structuredContent: { prefill: input },
+        content: [
+          { type: 'text' as const, text: 'Create space form displayed.' },
+        ],
+        isError: false,
+      };
+    },
   );
 
 server.run();
