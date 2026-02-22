@@ -126,7 +126,7 @@ function TransactionsView({
   const feedItems = data.feedItems ?? [];
 
   return (
-    <div>
+    <div className="space-transactions-list">
       <button className="payee-form__back" onClick={onBack}>
         <svg
           viewBox="0 0 24 24"

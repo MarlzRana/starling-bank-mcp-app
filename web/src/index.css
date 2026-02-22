@@ -1844,6 +1844,12 @@
   color: var(--color-text-secondary);
 }
 
+.space-transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 .space-empty {
   color: var(--color-text-secondary);
   text-align: center;
