@@ -35,6 +35,94 @@ interface AccountFormData {
   defaultAccount: boolean;
 }
 
+interface MinorUnitsAmount {
+  currency: string;
+  minorUnits: number;
+}
+
+interface Payment {
+  paymentUid: string;
+  amount?: MinorUnitsAmount;
+  paymentAmount?: MinorUnitsAmount;
+  settlementAmount?: MinorUnitsAmount;
+  reference?: string;
+  createdAt?: string;
+  settlementDate?: string;
+  spendingCategory?: string;
+  [key: string]: unknown;
+}
+
+interface AccountPayments {
+  account: PayeeAccount;
+  payments: Payment[];
+}
+
+interface RecurrenceRule {
+  startDate: string;
+  frequency: string;
+  interval: number;
+  count?: number;
+  untilDate?: string;
+}
+
+interface ScheduledPayment {
+  paymentOrderUid?: string;
+  nextPaymentAmount?: MinorUnitsAmount;
+  amount?: MinorUnitsAmount;
+  reference?: string;
+  recipientName?: string;
+  recurrenceRule?: RecurrenceRule;
+  startDate?: string;
+  nextDate?: string;
+  endDate?: string;
+  paymentType?: string;
+  spendingCategory?: string;
+  [key: string]: unknown;
+}
+
+interface AccountScheduledPayments {
+  account: PayeeAccount;
+  scheduledPayments: ScheduledPayment[];
+}
+
+function formatPaymentAmount(currency: string, minorUnits: number): string {
+  const major = minorUnits / 100;
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+  }).format(major);
+}
+
+function formatPaymentDateTime(iso: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(iso));
+}
+
+function formatPaymentDate(iso: string): string {
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
+    new Date(iso)
+  );
+}
+
+function formatRecurrence(rule: RecurrenceRule): string {
+  const freqMap: Record<string, [string, string]> = {
+    DAILY: ["day", "days"],
+    WEEKLY: ["week", "weeks"],
+    MONTHLY: ["month", "months"],
+    YEARLY: ["year", "years"],
+  };
+  const entry = freqMap[rule.frequency];
+  if (!entry) return rule.frequency;
+  if (rule.interval === 1) return `Every ${entry[0]}`;
+  return `Every ${rule.interval} ${entry[1]}`;
+}
+
+function getPaymentAmount(payment: Payment): MinorUnitsAmount | null {
+  return payment.amount ?? payment.paymentAmount ?? payment.settlementAmount ?? null;
+}
+
 const emptyAccount = (): AccountFormData => ({
   description: "",
   countryCode: "GB",
@@ -65,13 +153,247 @@ function PayeeAvatar({
   );
 }
 
-function PayeeAccountRow({ account }: { account: PayeeAccount }) {
+function PayeeAccountRow({
+  account,
+  onHistory,
+}: {
+  account: PayeeAccount;
+  onHistory?: () => void;
+}) {
   return (
     <div className="payee-accounts-list__item">
       <span className="payee-accounts-list__desc">{account.description}</span>
       <span className="payee-accounts-list__detail">
         {account.bankIdentifier} / {account.accountIdentifier}
       </span>
+      {onHistory && (
+        <div className="payee-accounts-list__actions">
+          <button className="payee-action-btn" onClick={onHistory} title="Payment history">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+            </svg>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InlinePaymentCard({ payment, index }: { payment: Payment; index: number }) {
+  const amt = getPaymentAmount(payment);
+  const dateStr = payment.createdAt ?? payment.settlementDate;
+
+  return (
+    <div className="payment-card" style={{ animationDelay: `${index * 0.05}s` }}>
+      {amt && (
+        <div className="payment-card__amount">
+          {formatPaymentAmount(amt.currency, amt.minorUnits)}
+        </div>
+      )}
+      {payment.reference && (
+        <div className="payment-card__reference">{payment.reference}</div>
+      )}
+      {dateStr && (
+        <div className="payment-card__date">{formatPaymentDateTime(dateStr)}</div>
+      )}
+      {payment.spendingCategory && (
+        <span className="payment-card__category">
+          {payment.spendingCategory.replace(/_/g, " ")}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function InlineScheduledCard({ payment, index }: { payment: ScheduledPayment; index: number }) {
+  const amt = payment.nextPaymentAmount ?? payment.amount;
+
+  return (
+    <div className="scheduled-card" style={{ animationDelay: `${index * 0.05}s` }}>
+      <div className="scheduled-card__top-row">
+        {payment.paymentType && (
+          <span className="scheduled-card__type-badge">
+            {payment.paymentType.replace(/_/g, " ")}
+          </span>
+        )}
+        {amt && (
+          <span className="scheduled-card__amount">
+            {formatPaymentAmount(amt.currency, amt.minorUnits)}
+          </span>
+        )}
+      </div>
+      {payment.reference && (
+        <div className="scheduled-card__reference">{payment.reference}</div>
+      )}
+      {payment.recurrenceRule && (
+        <div className="scheduled-card__recurrence">
+          {formatRecurrence(payment.recurrenceRule)}
+        </div>
+      )}
+      {(payment.nextDate || payment.startDate) && (
+        <div className="scheduled-card__dates">
+          {payment.nextDate && <span>Next: {formatPaymentDate(payment.nextDate)}</span>}
+          {payment.startDate && (
+            <span>
+              {formatPaymentDate(payment.startDate)}
+              {payment.endDate ? ` — ${formatPaymentDate(payment.endDate)}` : " — ongoing"}
+            </span>
+          )}
+        </div>
+      )}
+      {payment.spendingCategory && (
+        <span className="scheduled-card__category">
+          {payment.spendingCategory.replace(/_/g, " ")}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function HistoryView({
+  payee,
+  filterAccountUid,
+  data,
+  isPending,
+  onBack,
+}: {
+  payee: Payee;
+  filterAccountUid?: string;
+  data: { payeeName: string; since: string; accountPayments: AccountPayments[] } | null;
+  isPending: boolean;
+  onBack: () => void;
+}) {
+  if (isPending || !data) {
+    return (
+      <div>
+        <button className="payee-form__back" onClick={onBack}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          Back
+        </button>
+        <div className="payments-loading">Loading payments...</div>
+      </div>
+    );
+  }
+
+  const accountPayments = filterAccountUid
+    ? (data.accountPayments ?? []).filter(
+        (ap) => ap.account.payeeAccountUid === filterAccountUid
+      )
+    : data.accountPayments ?? [];
+
+  const totalPayments = accountPayments.reduce(
+    (sum, ap) => sum + (ap.payments?.length ?? 0),
+    0
+  );
+
+  return (
+    <div>
+      <button className="payee-form__back" onClick={onBack}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+        Back
+      </button>
+      <div className="payments-header">
+        <span className="payments-header__title">{payee.payeeName}</span>
+        <span className="payments-header__subtitle">
+          {totalPayments} payment{totalPayments !== 1 ? "s" : ""} since{" "}
+          <span className="payments-header__badge">{data.since.slice(0, 4)}</span>
+        </span>
+      </div>
+      {accountPayments.length === 0 ? (
+        <div className="payments-empty">No payments found</div>
+      ) : (
+        accountPayments.map((entry) => (
+          <div className="payments-account" key={entry.account.payeeAccountUid}>
+            <div className="payments-account__header">
+              <span className="payments-account__desc">{entry.account.description}</span>
+              <span className="payments-account__detail">
+                {entry.account.bankIdentifier} / {entry.account.accountIdentifier}
+              </span>
+            </div>
+            {entry.payments.length === 0 ? (
+              <div className="payments-empty">No payments found for this account</div>
+            ) : (
+              entry.payments.map((payment, i) => (
+                <InlinePaymentCard key={payment.paymentUid ?? i} payment={payment} index={i} />
+              ))
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+function ScheduledView({
+  payee,
+  data,
+  isPending,
+  onBack,
+}: {
+  payee: Payee;
+  data: { payeeName: string; accountScheduledPayments: AccountScheduledPayments[] } | null;
+  isPending: boolean;
+  onBack: () => void;
+}) {
+  if (isPending || !data) {
+    return (
+      <div>
+        <button className="payee-form__back" onClick={onBack}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          Back
+        </button>
+        <div className="payments-loading">Loading scheduled payments...</div>
+      </div>
+    );
+  }
+
+  const accountScheduled = data.accountScheduledPayments ?? [];
+  const totalScheduled = accountScheduled.reduce(
+    (sum, asp) => sum + (asp.scheduledPayments?.length ?? 0),
+    0
+  );
+
+  return (
+    <div>
+      <button className="payee-form__back" onClick={onBack}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+        Back
+      </button>
+      <div className="payments-header">
+        <span className="payments-header__title">{payee.payeeName}</span>
+        <span className="payments-header__subtitle">
+          {totalScheduled} scheduled payment{totalScheduled !== 1 ? "s" : ""}
+        </span>
+      </div>
+      {accountScheduled.length === 0 ? (
+        <div className="payments-empty">No scheduled payments found</div>
+      ) : (
+        accountScheduled.map((entry) => (
+          <div className="payments-account" key={entry.account.payeeAccountUid}>
+            <div className="payments-account__header">
+              <span className="payments-account__desc">{entry.account.description}</span>
+              <span className="payments-account__detail">
+                {entry.account.bankIdentifier} / {entry.account.accountIdentifier}
+              </span>
+            </div>
+            {(entry.scheduledPayments ?? []).length === 0 ? (
+              <div className="payments-empty">No scheduled payments for this account</div>
+            ) : (
+              entry.scheduledPayments.map((sp, i) => (
+                <InlineScheduledCard key={sp.paymentOrderUid ?? i} payment={sp} index={i} />
+              ))
+            )}
+          </div>
+        ))
+      )}
     </div>
   );
 }
@@ -81,15 +403,21 @@ function PayeeCard({
   images,
   onEdit,
   onDelete,
+  onHistory,
+  onScheduled,
   isExpanded,
   onToggleExpand,
+  onAccountHistory,
 }: {
   payee: Payee;
   images?: Record<string, string>;
   onEdit: () => void;
   onDelete: () => void;
+  onHistory: () => void;
+  onScheduled: () => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
+  onAccountHistory: (payeeAccountUid: string) => void;
 }) {
   const hasMultipleAccounts = payee.accounts.length > 1;
   const singleAccount = payee.accounts.length === 1 ? payee.accounts[0] : null;
@@ -129,6 +457,18 @@ function PayeeCard({
           )}
         </div>
         <div className="payee-card__actions">
+          <button className="payee-action-btn" onClick={onHistory} title="Payment history">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+            </svg>
+          </button>
+          <button className="payee-action-btn" onClick={onScheduled} title="Scheduled payments">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          </button>
           <button className="payee-action-btn" onClick={onEdit} title="Edit">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -146,7 +486,11 @@ function PayeeCard({
       {hasMultipleAccounts && (
         <div className={`payee-accounts-list${isExpanded ? " payee-accounts-list--expanded" : ""}`}>
           {payee.accounts.map((account) => (
-            <PayeeAccountRow key={account.payeeAccountUid} account={account} />
+            <PayeeAccountRow
+              key={account.payeeAccountUid}
+              account={account}
+              onHistory={() => onAccountHistory(account.payeeAccountUid)}
+            />
           ))}
         </div>
       )}
@@ -499,10 +843,14 @@ function GetPayees() {
   const { output, responseMetadata } = useToolInfo<"get-payees">();
   const images = responseMetadata?.images as Record<string, string> | undefined;
 
-  const [view, setView] = useState<"list" | "create" | "update">("list");
+  const [view, setView] = useState<"list" | "create" | "update" | "history" | "scheduled">("list");
   const [updateTarget, setUpdateTarget] = useState<Payee | null>(null);
   const [expandedPayeeUid, setExpandedPayeeUid] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Payee | null>(null);
+  const [paymentsTarget, setPaymentsTarget] = useState<{
+    payee: Payee;
+    filterAccountUid?: string;
+  } | null>(null);
 
   const {
     callTool: callCreate,
@@ -516,6 +864,25 @@ function GetPayees() {
   } = useCallTool("update-payee");
   const { callTool: callDelete, isPending: isDeleting } =
     useCallTool("delete-payee");
+
+  const history = useCallTool("get-payee-historic-payments");
+  const scheduled = useCallTool("get-payee-scheduled-payments");
+
+  const openHistory = (payee: Payee, filterAccountUid?: string) => {
+    setPaymentsTarget({ payee, filterAccountUid });
+    setView("history");
+    const sinceYear = new Date().getFullYear() - 3;
+    history.callTool({
+      payeeUid: payee.payeeUid,
+      since: `${sinceYear}-01-01`,
+    });
+  };
+
+  const openScheduled = (payee: Payee) => {
+    setPaymentsTarget({ payee });
+    setView("scheduled");
+    scheduled.callTool({ payeeUid: payee.payeeUid });
+  };
 
   if (!output) {
     return (
@@ -557,6 +924,33 @@ function GetPayees() {
     );
   }
 
+  if (view === "history" && paymentsTarget) {
+    return (
+      <div className="payees-container">
+        <HistoryView
+          payee={paymentsTarget.payee}
+          filterAccountUid={paymentsTarget.filterAccountUid}
+          data={(history.data?.structuredContent as unknown as { payeeName: string; since: string; accountPayments: AccountPayments[] }) ?? null}
+          isPending={history.isPending}
+          onBack={() => setView("list")}
+        />
+      </div>
+    );
+  }
+
+  if (view === "scheduled" && paymentsTarget) {
+    return (
+      <div className="payees-container">
+        <ScheduledView
+          payee={paymentsTarget.payee}
+          data={(scheduled.data?.structuredContent as unknown as { payeeName: string; accountScheduledPayments: AccountScheduledPayments[] }) ?? null}
+          isPending={scheduled.isPending}
+          onBack={() => setView("list")}
+        />
+      </div>
+    );
+  }
+
   const payees: Payee[] = output.payees ?? [];
 
   return (
@@ -592,12 +986,15 @@ function GetPayees() {
               setView("update");
             }}
             onDelete={() => setDeleteTarget(payee)}
+            onHistory={() => openHistory(payee)}
+            onScheduled={() => openScheduled(payee)}
             isExpanded={expandedPayeeUid === payee.payeeUid}
             onToggleExpand={() =>
               setExpandedPayeeUid((prev) =>
                 prev === payee.payeeUid ? null : payee.payeeUid
               )
             }
+            onAccountHistory={(payeeAccountUid) => openHistory(payee, payeeAccountUid)}
           />
         ))
       )}

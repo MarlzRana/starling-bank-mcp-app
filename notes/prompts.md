@@ -160,6 +160,6 @@ Prompt 7:
 Future:
 
 - Introduce two new icons (a history one and scheduled payments) to the payees view that lets users see their payments and scheduled payments to that user in a separate views
-- Correlate payments and scheduled payments to payee account using the payeeAccountUid and present these under the payments/scheduled payments
-- In the payee accounts view (where payees have more than 1 payee accounts under them), make this functionality available as wel
+- In the payee accounts view (where payees have more than 1 payee accounts under them), make this functionality available as well
 - For payees with multiple payee accounts, just make this available at the payee account level
+- **Keep in mind `{accountUid}` is actually the payeeAccountUid. This is an API naming mistake. Make the tools use payeeAccountUid for consistency.**

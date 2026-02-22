@@ -957,8 +957,17 @@
   border-top: 1px solid var(--color-bg);
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.8rem;
+}
+
+.payee-accounts-list__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .payee-accounts-list__desc {

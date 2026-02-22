@@ -43,7 +43,15 @@ interface Card {
 
 // ── Card Visual ──────────────────────────────────────────────────────────────
 
-function CardVisual({ card, enabled, posEnabled }: { card: Card; enabled: boolean; posEnabled: boolean }) {
+function CardVisual({
+  card,
+  enabled,
+  posEnabled,
+}: {
+  card: Card;
+  enabled: boolean;
+  posEnabled: boolean;
+}) {
   const lastDigits = card.endOfCardNumber?.slice(-4) ?? '????';
 
   return (
@@ -61,23 +69,27 @@ function CardVisual({ card, enabled, posEnabled }: { card: Card; enabled: boolea
             alt="EMV Chip"
           />
           {(!enabled || !posEnabled) && (
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <span style={{
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                height: '62%',
-                aspectRatio: '1',
-                borderRadius: '50%',
-                border: '1.5px solid rgba(var(--color-text-rgb), 0.7)',
-                backgroundColor: 'rgba(var(--color-text-rgb), 0.5)',
-              }}>
+              }}
+            >
+              <span
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '62%',
+                  aspectRatio: '1',
+                  borderRadius: '50%',
+                  border: '1.5px solid rgba(var(--color-text-rgb), 0.7)',
+                  backgroundColor: 'rgba(var(--color-text-rgb), 0.5)',
+                }}
+              >
                 <img
                   src={padlockIcon}
                   alt="Locked"
@@ -382,8 +394,12 @@ function GetCards() {
       {cards.map((card) => {
         const isFlipped = flippedCardUid === card.cardUid;
         const confirmed = confirmedControls[card.cardUid] ?? {};
-        const cardEnabled = 'enabled' in confirmed ? confirmed['enabled']! : card.enabled;
-        const cardPosEnabled = 'pos-enabled' in confirmed ? confirmed['pos-enabled']! : card.posEnabled;
+        const cardEnabled =
+          'enabled' in confirmed ? confirmed['enabled']! : card.enabled;
+        const cardPosEnabled =
+          'pos-enabled' in confirmed
+            ? confirmed['pos-enabled']!
+            : card.posEnabled;
 
         return (
           <div key={card.cardUid} className="card-section">
@@ -396,7 +412,11 @@ function GetCards() {
               >
                 {/* Front face */}
                 <div className="card-flip__face card-flip__front">
-                  <CardVisual card={card} enabled={cardEnabled} posEnabled={cardPosEnabled} />
+                  <CardVisual
+                    card={card}
+                    enabled={cardEnabled}
+                    posEnabled={cardPosEnabled}
+                  />
                 </div>
 
                 {/* Back face */}
@@ -416,7 +436,7 @@ function GetCards() {
               </div>
             </div>
             <p className="card-hint">
-              Adjust card controls by clicking/tapping the card
+              See and adjust card controls by clicking/tapping the card
             </p>
           </div>
         );
