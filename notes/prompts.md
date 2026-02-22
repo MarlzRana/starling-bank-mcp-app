@@ -130,3 +130,26 @@ Let's make a display-create-payee tool that just presents the UI, that then call
     2. Your UI renders — user fills in recipient, amount, etc.
     3. On submit, view calls an app-only submit_transfer tool with the collected data
     4. View renders the result (success/error)
+
+Prompt 7:
+
+## Core Mission
+
+- Allow users to see their payments to a particular payee, and what payee account they used to to make each payment
+- Allow users to see their scheduled payments to a particular payee, and what payee account they will use to make each scheduled payment
+
+## Relevant APIs:
+
+- GET /api/v2/payees/{payeeUid}/account/{accountUid}/scheduled-payments (Get scheduled payments)
+- GET /api/v2/payees/{payeeUid}/account/{accountUid}/payments (view a history of payments to your payee into get-payees, so users can see their historic and scheduled payments.
+
+## Guidance
+
+- Introduce two new icons (a history one and scheduled payments) to the payees view that lets users see their payments and scheduled payments to that user in a separate views
+- Correlate payments and scheduled payments to payee account using the payeeAccountUid and present these under the payments/scheduled payments
+- In the payee accounts view (where payees have more than 1 payee accounts under them), make this functionality available as wel
+- For payees with multiple payee accounts, just make this available at the payee account level
+- Make sure to respect the color scheme.
+- Design it to look good and visually appealing in Claude Desktop
+- Use animations to make the UI feel slick but not gimmick animations - something professional
+- Use @swagger.json to understand the APIs
