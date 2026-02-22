@@ -2511,6 +2511,86 @@ const server = new McpServer(
         };
       }
     },
+  )
+  .registerWidget(
+    'display-get-transactions',
+    { description: 'Account Transactions' },
+    {
+      description:
+        'Fetch transactions for a Starling Bank account over the last 2 years with spending analytics.',
+      inputSchema: {
+        accountUid: z.string().uuid().describe('The account UID'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async (input) => {
+      try {
+        const accountsRes = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/accounts`,
+          { headers: authHeaders },
+        );
+        if (!accountsRes.ok) {
+          throw new Error(
+            `Failed to fetch accounts: ${accountsRes.status} ${accountsRes.statusText}`,
+          );
+        }
+        const accountsData = await accountsRes.json();
+        const accounts: Array<{
+          accountUid: string;
+          name: string;
+          accountType: string;
+          currency: string;
+          defaultCategory: string;
+        }> = accountsData.accounts ?? [];
+
+        const account = accounts.find(
+          (a) => a.accountUid === input.accountUid,
+        );
+        if (!account) {
+          throw new Error(`Account not found: ${input.accountUid}`);
+        }
+
+        const now = new Date();
+        const startOfLastYear = new Date(now.getFullYear() - 1, 0, 1);
+        const params = new URLSearchParams({
+          minTransactionTimestamp: startOfLastYear.toISOString(),
+          maxTransactionTimestamp: now.toISOString(),
+        });
+
+        const res = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/feed/account/${input.accountUid}/category/${account.defaultCategory}/transactions-between?${params}`,
+          { headers: authHeaders },
+        );
+        if (!res.ok) {
+          throw new Error(
+            `Failed to fetch transactions: ${res.status} ${res.statusText}`,
+          );
+        }
+        const data = await res.json();
+        const feedItems = data.feedItems ?? [];
+
+        return {
+          structuredContent: {
+            feedItems,
+            accountUid: input.accountUid,
+            accountName: account.name,
+            accountCurrency: account.currency,
+          },
+          content: [
+            {
+              type: 'text' as const,
+              text: `Fetched ${feedItems.length} transactions for account "${account.name}".`,
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
   );
 
 server.run();
