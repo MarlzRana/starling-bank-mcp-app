@@ -219,11 +219,50 @@ const server = new McpServer(
     },
   )
   .registerWidget(
+    'display-create-payee',
+    { description: 'Create Payee Form' },
+    {
+      description:
+        'IMMEDIATELY call this tool when the user wants to create or add a payee — do not ask questions first, show the form right away. ' +
+        'Pre-fill any fields you already know from the conversation. All parameters are optional; the user completes the rest in the form UI. ' +
+        'Do NOT call create-payee directly — it is an internal tool used by this form. ' +
+        'After the user submits, you will receive a follow-up message confirming 2FA was triggered on their device.',
+      inputSchema: {
+        payeeName: z.string().optional().describe('The name for the payee'),
+        payeeType: z.enum(['BUSINESS', 'INDIVIDUAL']).optional().describe('Type of payee'),
+        phoneNumber: z.string().optional().describe('Phone number'),
+        firstName: z.string().optional().describe('First name (for INDIVIDUAL)'),
+        middleName: z.string().optional().describe('Middle name (for INDIVIDUAL)'),
+        lastName: z.string().optional().describe('Last name (for INDIVIDUAL)'),
+        businessName: z.string().optional().describe('Business name (for BUSINESS)'),
+        dateOfBirth: z.string().optional().describe('Date of birth (YYYY-MM-DD)'),
+        accounts: z.array(z.object({
+          description: z.string(),
+          defaultAccount: z.boolean(),
+          countryCode: z.string(),
+          accountIdentifier: z.string(),
+          bankIdentifier: z.string(),
+          bankIdentifierType: z.enum(['SORT_CODE', 'SWIFT', 'IBAN', 'ABA', 'ABA_WIRE', 'ABA_ACH']),
+        })).optional().describe('Pre-filled account details'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async (input) => {
+      return {
+        structuredContent: { prefill: input },
+        content: [{ type: 'text' as const, text: 'Create payee form displayed.' }],
+        isError: false,
+      };
+    },
+  )
+  .registerWidget(
     'create-payee',
     { description: 'Create a new payee' },
     {
       description:
-        'Create a new payee with account details for payments.',
+        'INTERNAL — do NOT call this tool directly. It is used internally by the display-create-payee form widget. ' +
+        'To create a payee, call display-create-payee instead.',
+      _meta: { ui: { visibility: ['app'] } },
       inputSchema: {
         payeeName: z.string().describe('The name for the payee'),
         payeeType: z

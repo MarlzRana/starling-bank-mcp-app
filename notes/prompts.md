@@ -92,3 +92,41 @@ GET /api/v2/payees/{payeeUid}/account/{accountUid}/payments View a history of pa
 PUT /api/v2/payees Create a payee
 PUT /api/v2/payees/{payeeUid} Update a payee
 DELETE /api/v2/payees/{payeeUid} Deletes a payee
+
+Prompt 6:
+Let's make a display-create-payee tool that just presents the UI, that then calls the create-payee tool to actually action the request. Remember the details about 2FA.  
+ display-create-payee tool should take in the same parameters as create payee, but all of them are optional, in the sense that the model if it has partial details should spawn  
+ display-create-payee, but if it has all info upfront just call create-payee. Update the respective tool descriptions to make this clear and guide the agents that use these tools. Here  
+ is spec info (with an example that we are not doing): Yes, the spec supports this. A few mechanisms enable it:
+
+    Calling Tools with User Input
+
+    The view can call tools/call directly. So your UI can render a form, collect input from the user, then fire a tool call with those
+    arguments:
+
+    User fills form → View calls tools/call → Server processes → View receives tool-result notification
+
+    App-Only Tools
+
+    You can define tools with visibility: ["app"] — these are hidden from the model but callable by your UI. This is perfect for form
+    submission endpoints that shouldn't be exposed to the agent:
+
+    {
+      "name": "submit_transfer",
+      "visibility": ["app"]
+    }
+
+    Sending to Chat
+
+    If you want the input to trigger a model response, the view can send ui/message which adds a message to the conversation:
+
+    { "method": "ui/message", "params": { "role": "user", "content": { "type": "text", "text": "..." } } }
+
+    Practical Pattern
+
+    So a full input-first flow could be:
+
+    1. Model calls a tool (e.g. open_transfer_form) with minimal/no args
+    2. Your UI renders — user fills in recipient, amount, etc.
+    3. On submit, view calls an app-only submit_transfer tool with the collected data
+    4. View renders the result (success/error)

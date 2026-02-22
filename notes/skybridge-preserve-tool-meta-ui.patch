@@ -1,0 +1,11 @@
+--- a/node_modules/skybridge/dist/server/server.js
++++ b/node_modules/skybridge/dist/server/server.js
+@@ -118,7 +118,7 @@
+             });
+             // @ts-expect-error - For backwards compatibility with Claude current implementation of the specs
+             toolMeta["ui/resourceUri"] = widgetConfig.uri;
+-            toolMeta.ui = { resourceUri: widgetConfig.uri };
++            toolMeta.ui = { ...toolMeta.ui, resourceUri: widgetConfig.uri };
+         }
+         this.registerTool(name, {
+             ...toolConfig,
