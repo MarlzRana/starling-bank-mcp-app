@@ -1,7 +1,8 @@
 import "@/index.css";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { mountWidget } from "skybridge/web";
 import { useToolInfo, useCallTool } from "../helpers.js";
+import { usePayeeImage } from "../hooks/use-image.js";
 
 interface PayeeAccount {
   payeeAccountUid: string;
@@ -132,19 +133,18 @@ const emptyAccount = (): AccountFormData => ({
   defaultAccount: false,
 });
 
-function PayeeAvatar({
-  payee,
-  images,
-}: {
-  payee: Payee;
-  images?: Record<string, string>;
-}) {
-  if (images?.[payee.payeeUid]) {
+function PayeeAvatar({ payee }: { payee: Payee }) {
+  const { imageUrl } = usePayeeImage(payee.payeeUid);
+  const [failed, setFailed] = useState(false);
+  const onError = useCallback(() => setFailed(true), []);
+
+  if (imageUrl && !failed) {
     return (
       <img
-        src={images[payee.payeeUid]}
+        src={imageUrl}
         className="payee-avatar"
         alt={payee.payeeName}
+        onError={onError}
       />
     );
   }
@@ -400,7 +400,6 @@ function ScheduledView({
 
 function PayeeCard({
   payee,
-  images,
   onEdit,
   onDelete,
   onHistory,
@@ -410,7 +409,6 @@ function PayeeCard({
   onAccountHistory,
 }: {
   payee: Payee;
-  images?: Record<string, string>;
   onEdit: () => void;
   onDelete: () => void;
   onHistory: () => void;
@@ -425,7 +423,7 @@ function PayeeCard({
   return (
     <div className="payee-card">
       <div className="payee-card__row">
-        <PayeeAvatar payee={payee} images={images} />
+        <PayeeAvatar payee={payee} />
         <div className="payee-card__info">
           <span className="payee-card__name">{payee.payeeName}</span>
           <span className="payee-card__type-badge">{payee.payeeType}</span>
@@ -840,8 +838,7 @@ function DeleteOverlay({
 }
 
 function GetPayees() {
-  const { output, responseMetadata } = useToolInfo<"get-payees">();
-  const images = responseMetadata?.images as Record<string, string> | undefined;
+  const { output } = useToolInfo<"get-payees">();
 
   const [view, setView] = useState<"list" | "create" | "update" | "history" | "scheduled">("list");
   const [updateTarget, setUpdateTarget] = useState<Payee | null>(null);
@@ -980,7 +977,6 @@ function GetPayees() {
           <PayeeCard
             key={payee.payeeUid}
             payee={payee}
-            images={images}
             onEdit={() => {
               setUpdateTarget(payee);
               setView("update");

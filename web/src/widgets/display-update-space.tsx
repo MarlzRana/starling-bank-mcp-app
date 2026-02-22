@@ -1,8 +1,9 @@
 import "@/index.css";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { mountWidget } from "skybridge/web";
 import { useSendFollowUpMessage } from "skybridge/web";
 import { useToolInfo, useCallTool } from "../helpers.js";
+import { SpaceListPhoto } from "../components/space-photo.js";
 
 interface MinorUnitsAmount {
   currency: string;
@@ -23,21 +24,6 @@ interface Account {
   currency: string;
   accountType: string;
   spaces: Space[];
-}
-
-function SpaceListPhoto({
-  name,
-  image,
-}: {
-  name: string;
-  image?: string;
-}) {
-  const [failed, setFailed] = useState(false);
-  const onError = useCallback(() => setFailed(true), []);
-  if (image && !failed) {
-    return <img src={image} className="space-list-item__photo" alt={name} onError={onError} />;
-  }
-  return <div className="space-list-item__photo-initials">{name[0]}</div>;
 }
 
 function formatAmount(currency: string, minorUnits: number): string {
@@ -104,12 +90,10 @@ function AccountSelector({
 
 function SpaceSelector({
   account,
-  images,
   onSelect,
   onBack,
 }: {
   account: Account;
-  images: Record<string, string>;
   onSelect: (space: Space) => void;
   onBack: () => void;
 }) {
@@ -137,7 +121,8 @@ function SpaceSelector({
           >
             <SpaceListPhoto
               name={space.name}
-              image={images[space.savingsGoalUid]}
+              accountUid={account.accountUid}
+              savingsGoalUid={space.savingsGoalUid}
             />
             <div className="space-list-item__info">
               <span className="space-list-item__name">{space.name}</span>
@@ -378,13 +363,11 @@ function UpdateSpaceForm({
 
 function UpdateSpaceInner({
   accounts,
-  images,
   selectedAccountUid,
   selectedSpaceUid,
   overrides,
 }: {
   accounts: Account[];
-  images: Record<string, string>;
   selectedAccountUid: string | null;
   selectedSpaceUid: string | null;
   overrides: Record<string, unknown>;
@@ -420,7 +403,6 @@ function UpdateSpaceInner({
     return (
       <SpaceSelector
         account={selectedAccount}
-        images={images}
         onSelect={(s) => setSelectedSpace(s)}
         onBack={() => setSelectedAccount(null)}
       />
@@ -431,7 +413,7 @@ function UpdateSpaceInner({
     <UpdateSpaceForm
       accountUid={selectedAccount.accountUid}
       space={selectedSpace}
-      existingPhotoDataUrl={images[selectedSpace.savingsGoalUid] ?? null}
+      existingPhotoDataUrl={null}
       overrides={overrides}
       onBack={() => setSelectedSpace(null)}
     />
@@ -439,10 +421,7 @@ function UpdateSpaceInner({
 }
 
 function DisplayUpdateSpace() {
-  const { output, responseMetadata } = useToolInfo<"display-update-space">();
-  const images = responseMetadata?.images as
-    | Record<string, string>
-    | undefined;
+  const { output } = useToolInfo<"display-update-space">();
 
   if (!output) {
     return (
@@ -459,7 +438,6 @@ function DisplayUpdateSpace() {
     <div className="payees-container">
       <UpdateSpaceInner
         accounts={output.accounts ?? []}
-        images={images ?? {}}
         selectedAccountUid={output.selectedAccountUid ?? null}
         selectedSpaceUid={output.selectedSpaceUid ?? null}
         overrides={output.overrides ?? {}}

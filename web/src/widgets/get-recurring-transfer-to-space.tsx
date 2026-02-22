@@ -1,8 +1,9 @@
 import "@/index.css";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { mountWidget } from "skybridge/web";
 import { useSendFollowUpMessage } from "skybridge/web";
 import { useToolInfo, useCallTool } from "../helpers.js";
+import { SpaceListPhoto } from "../components/space-photo.js";
 import binIcon from "../assets/bin.svg";
 
 interface MinorUnitsAmount {
@@ -160,28 +161,6 @@ function todayISO(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-function SpaceListPhoto({
-  name,
-  image,
-}: {
-  name: string;
-  image?: string;
-}) {
-  const [failed, setFailed] = useState(false);
-  const onError = useCallback(() => setFailed(true), []);
-  if (image && !failed) {
-    return (
-      <img
-        src={image}
-        className="space-list-item__photo"
-        alt={name}
-        onError={onError}
-      />
-    );
-  }
-  return <div className="space-list-item__photo-initials">{name[0]}</div>;
-}
-
 type FlowState =
   | "account"
   | "space"
@@ -193,9 +172,7 @@ type FlowState =
   | "delete-success";
 
 function GetRecurringTransferToSpace() {
-  const { output, responseMetadata } =
-    useToolInfo<"get-recurring-transfer-to-space">();
-  const images = (responseMetadata?.images ?? {}) as Record<string, string>;
+  const { output } = useToolInfo<"get-recurring-transfer-to-space">();
 
   if (!output) {
     return (
@@ -211,7 +188,6 @@ function GetRecurringTransferToSpace() {
   return (
     <GetRecurringInner
       accounts={output.accounts ?? []}
-      images={images}
       selectedAccountUid={output.selectedAccountUid ?? null}
       selectedSpaceUid={output.selectedSpaceUid ?? null}
       recurringTransfers={
@@ -226,13 +202,11 @@ function GetRecurringTransferToSpace() {
 
 function GetRecurringInner({
   accounts,
-  images,
   selectedAccountUid,
   selectedSpaceUid,
   recurringTransfers,
 }: {
   accounts: Account[];
-  images: Record<string, string>;
   selectedAccountUid: string | null;
   selectedSpaceUid: string | null;
   recurringTransfers: Record<string, RecurringTransfer>;
@@ -510,7 +484,8 @@ function GetRecurringInner({
                     <div className="space-list-item__header">
                       <SpaceListPhoto
                         name={space.name}
-                        image={images[space.savingsGoalUid]}
+                        accountUid={selectedAccount.accountUid}
+                        savingsGoalUid={space.savingsGoalUid}
                       />
                       <div className="space-list-item__info">
                         <span className="space-list-item__name">
@@ -609,7 +584,8 @@ function GetRecurringInner({
                 >
                   <SpaceListPhoto
                     name={space.name}
-                    image={images[space.savingsGoalUid]}
+                    accountUid={selectedAccount.accountUid}
+                    savingsGoalUid={space.savingsGoalUid}
                   />
                   <div className="space-list-item__info">
                     <span className="space-list-item__name">{space.name}</span>

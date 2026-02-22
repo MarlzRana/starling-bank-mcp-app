@@ -3,6 +3,7 @@ import "@/index.css";
 import { useState, useRef } from "react";
 import { mountWidget } from "skybridge/web";
 import { useToolInfo, useCallTool } from "../helpers.js";
+import { useProfileImage } from "../hooks/use-image.js";
 
 interface MinorUnitsAmount {
   currency: string;
@@ -38,13 +39,13 @@ function formatAmount(currency: string, minorUnits: number): string {
 }
 
 function ProfileImage({
-  imageUrl,
   accountHolderUid,
 }: {
-  imageUrl: string | null;
   accountHolderUid: string;
 }) {
-  const [localImage, setLocalImage] = useState<string | null>(imageUrl);
+  const { imageUrl } = useProfileImage(accountHolderUid);
+  const [localImage, setLocalImage] = useState<string | null>(null);
+  const effectiveImage = localImage ?? imageUrl;
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "success">("idle");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -100,8 +101,8 @@ function ProfileImage({
   return (
     <div className="profile-image-section">
       <div className="profile-image-wrapper" onClick={() => fileInputRef.current?.click()}>
-        {localImage ? (
-          <img src={localImage} className="profile-image" alt="Profile" />
+        {effectiveImage ? (
+          <img src={effectiveImage} className="profile-image" alt="Profile" />
         ) : (
           <div className="profile-image-placeholder">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="32" height="32">
@@ -136,7 +137,7 @@ function ProfileImage({
         />
       </div>
 
-      {localImage && (
+      {effectiveImage && (
         <button
           className="profile-image-delete-btn"
           onClick={(e) => {
@@ -260,8 +261,7 @@ function AccountCard({ account }: { account: Account }) {
 }
 
 function GetAccounts() {
-  const { output, responseMetadata } = useToolInfo<"get-accounts">();
-  const profileImageUrl = (responseMetadata?.profileImageUrl as string | null) ?? null;
+  const { output } = useToolInfo<"get-accounts">();
 
   if (!output) {
     return (
@@ -275,7 +275,6 @@ function GetAccounts() {
     <div className="accounts-container">
       {output.accountHolderUid && (
         <ProfileImage
-          imageUrl={profileImageUrl}
           accountHolderUid={output.accountHolderUid}
         />
       )}

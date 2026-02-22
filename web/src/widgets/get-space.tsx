@@ -1,8 +1,9 @@
 import "@/index.css";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { mountWidget } from "skybridge/web";
 import { useToolInfo, useCallTool } from "../helpers.js";
+import { SpacePhoto } from "../components/space-photo.js";
 
 interface MinorUnitsAmount {
   currency: string;
@@ -32,21 +33,6 @@ function formatDateTime(iso: string): string {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(iso));
-}
-
-function SpacePhoto({
-  name,
-  image,
-}: {
-  name: string;
-  image?: string;
-}) {
-  const [failed, setFailed] = useState(false);
-  const onError = useCallback(() => setFailed(true), []);
-  if (image && !failed) {
-    return <img src={image} className="space-card__photo" alt={name} onError={onError} />;
-  }
-  return <div className="space-card__photo-initials">{name[0]}</div>;
 }
 
 function TransactionCard({
@@ -148,7 +134,6 @@ function TransactionsView({
 
 function SpaceCard({
   space,
-  image,
   onViewTransactions,
 }: {
   space: {
@@ -160,7 +145,6 @@ function SpaceCard({
     savedPercentage?: number;
     accountUid: string;
   };
-  image?: string;
   onViewTransactions: () => void;
 }) {
   const hasTarget = space.target && space.target.minorUnits > 0;
@@ -178,7 +162,7 @@ function SpaceCard({
   return (
     <div className="space-card">
       <div className="space-card__header">
-        <SpacePhoto name={space.name} image={image} />
+        <SpacePhoto name={space.name} accountUid={space.accountUid} savingsGoalUid={space.savingsGoalUid} />
         <span className="space-card__name">{space.name}</span>
         <span
           className={`space-card__state-badge${space.state === "ACTIVE" ? " space-card__state-badge--active" : ""}`}
@@ -237,10 +221,7 @@ function SpaceCard({
 }
 
 function GetSpace() {
-  const { output, responseMetadata } = useToolInfo<"get-space">();
-  const images = responseMetadata?.images as
-    | Record<string, string>
-    | undefined;
+  const { output } = useToolInfo<"get-space">();
 
   const [view, setView] = useState<"detail" | "transactions">("detail");
 
@@ -280,13 +261,10 @@ function GetSpace() {
     );
   }
 
-  const spaceImage = images?.[output.savingsGoalUid];
-
   return (
     <div className="space-container">
       <SpaceCard
         space={output as unknown as Parameters<typeof SpaceCard>[0]["space"]}
-        image={spaceImage}
         onViewTransactions={openTransactions}
       />
     </div>

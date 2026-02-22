@@ -1,9 +1,10 @@
 import "@/index.css";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { mountWidget } from "skybridge/web";
 import { useSendFollowUpMessage } from "skybridge/web";
 import { useToolInfo, useCallTool } from "../helpers.js";
+import { SpacePhoto, SpaceListPhoto } from "../components/space-photo.js";
 import binIcon from "../assets/bin.svg";
 
 interface MinorUnitsAmount {
@@ -176,36 +177,6 @@ function todayISO(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-function SpacePhoto({
-  name,
-  image,
-}: {
-  name: string;
-  image?: string;
-}) {
-  const [failed, setFailed] = useState(false);
-  const onError = useCallback(() => setFailed(true), []);
-  if (image && !failed) {
-    return <img src={image} className="space-card__photo" alt={name} onError={onError} />;
-  }
-  return <div className="space-card__photo-initials">{name[0]}</div>;
-}
-
-function SpaceListPhoto({
-  name,
-  image,
-}: {
-  name: string;
-  image?: string;
-}) {
-  const [failed, setFailed] = useState(false);
-  const onError = useCallback(() => setFailed(true), []);
-  if (image && !failed) {
-    return <img src={image} className="space-list-item__photo" alt={name} onError={onError} />;
-  }
-  return <div className="space-list-item__photo-initials">{name[0]}</div>;
-}
-
 function TransactionCard({
   item,
   index,
@@ -305,7 +276,6 @@ function TransactionsView({
 
 function SpaceCard({
   space,
-  image,
   recurringTransfer,
   onViewTransactions,
   onSetupRecurring,
@@ -314,7 +284,6 @@ function SpaceCard({
   onBack,
 }: {
   space: Space & { accountUid: string };
-  image?: string;
   recurringTransfer: RecurringTransfer | null;
   onViewTransactions: () => void;
   onSetupRecurring: () => void;
@@ -351,7 +320,7 @@ function SpaceCard({
       </button>
 
       <div className="space-card__header">
-        <SpacePhoto name={space.name} image={image} />
+        <SpacePhoto name={space.name} accountUid={space.accountUid} savingsGoalUid={space.savingsGoalUid} />
         <span className="space-card__name">{space.name}</span>
         <span
           className={`space-card__state-badge${space.state === "ACTIVE" ? " space-card__state-badge--active" : ""}`}
@@ -844,10 +813,7 @@ type ViewState =
   | "space-delete-success";
 
 function GetSpaces() {
-  const { output, responseMetadata } = useToolInfo<"get-spaces">();
-  const images = responseMetadata?.images as
-    | Record<string, string>
-    | undefined;
+  const { output } = useToolInfo<"get-spaces">();
   const sendFollowUp = useSendFollowUpMessage();
 
   const [view, setView] = useState<ViewState>("list");
@@ -1100,7 +1066,6 @@ function GetSpaces() {
       <div className="space-container">
         <SpaceCard
           space={selectedSpace}
-          image={images?.[selectedSpace.savingsGoalUid]}
           recurringTransfer={transfers[selectedSpace.savingsGoalUid] ?? null}
           onViewTransactions={openTransactions}
           onSetupRecurring={() => setView("rt-setup-form")}
@@ -1757,7 +1722,8 @@ function GetSpaces() {
                 >
                   <SpaceListPhoto
                     name={space.name}
-                    image={images?.[space.savingsGoalUid]}
+                    accountUid={account.accountUid}
+                    savingsGoalUid={space.savingsGoalUid}
                   />
                   <div className="space-list-item__info">
                     <span className="space-list-item__name">{space.name}</span>

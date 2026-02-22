@@ -71,24 +71,6 @@ const server = new McpServer(
           accountHolderUid = holderData.accountHolderUid;
         }
 
-        let profileImageUrl: string | null = null;
-        if (accountHolderUid) {
-          try {
-            const imgRes = await fetch(
-              `${STARLING_API_BASE_URL}/api/v2/account-holder/${accountHolderUid}/profile-image`,
-              { headers: { Authorization: `Bearer ${BEARER_TOKEN}`, Accept: 'image/*' } },
-            );
-            if (imgRes.ok) {
-              const contentType = imgRes.headers.get('content-type') ?? 'image/png';
-              const buffer = await imgRes.arrayBuffer();
-              const base64 = Buffer.from(buffer).toString('base64');
-              profileImageUrl = `data:${contentType};base64,${base64}`;
-            }
-          } catch {
-            // No profile image or fetch failed — leave as null
-          }
-        }
-
         const enriched = await Promise.all(
           rawAccounts.map(async (account) => {
             const [balanceRes, identifiersRes] = await Promise.all([
@@ -134,7 +116,7 @@ const server = new McpServer(
 
         return {
           structuredContent: result,
-          _meta: { profileImageUrl },
+          _meta: {},
           content: [
             {
               type: 'text' as const,
@@ -244,6 +226,131 @@ const server = new McpServer(
         return {
           content: [{ type: 'text' as const, text: `Error: ${error}` }],
           isError: true,
+        };
+      }
+    },
+  )
+  .registerTool(
+    'get-profile-image',
+    {
+      description: 'Fetch the account holder profile image as a data URI.',
+      _meta: { ui: { visibility: ['app'] } },
+      inputSchema: {
+        accountHolderUid: z.string().describe('The account holder UID'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async ({ accountHolderUid }) => {
+      try {
+        const imgRes = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/account-holder/${accountHolderUid}/profile-image`,
+          { headers: { Authorization: `Bearer ${BEARER_TOKEN}`, Accept: 'image/*' } },
+        );
+        if (!imgRes.ok) {
+          return {
+            structuredContent: { dataUri: null },
+            content: [{ type: 'text' as const, text: 'No profile image found.' }],
+            isError: false,
+          };
+        }
+        const contentType = imgRes.headers.get('content-type') ?? 'image/png';
+        const buffer = await imgRes.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString('base64');
+        return {
+          structuredContent: { dataUri: `data:${contentType};base64,${base64}` },
+          content: [{ type: 'text' as const, text: 'Profile image fetched.' }],
+          isError: false,
+        };
+      } catch {
+        return {
+          structuredContent: { dataUri: null },
+          content: [{ type: 'text' as const, text: 'Failed to fetch profile image.' }],
+          isError: false,
+        };
+      }
+    },
+  )
+  .registerTool(
+    'get-payee-image',
+    {
+      description: 'Fetch a payee profile image as a data URI.',
+      _meta: { ui: { visibility: ['app'] } },
+      inputSchema: {
+        payeeUid: z.string().describe('The payee UID'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async ({ payeeUid }) => {
+      try {
+        const imgRes = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/payees/${payeeUid}/image`,
+          { headers: { ...authHeaders, Accept: 'image/png' } },
+        );
+        if (!imgRes.ok) {
+          return {
+            structuredContent: { dataUri: null },
+            content: [{ type: 'text' as const, text: 'No payee image found.' }],
+            isError: false,
+          };
+        }
+        const buffer = await imgRes.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString('base64');
+        return {
+          structuredContent: { dataUri: `data:image/png;base64,${base64}` },
+          content: [{ type: 'text' as const, text: 'Payee image fetched.' }],
+          isError: false,
+        };
+      } catch {
+        return {
+          structuredContent: { dataUri: null },
+          content: [{ type: 'text' as const, text: 'Failed to fetch payee image.' }],
+          isError: false,
+        };
+      }
+    },
+  )
+  .registerTool(
+    'get-space-photo',
+    {
+      description: 'Fetch a Space (savings goal) photo as a data URI.',
+      _meta: { ui: { visibility: ['app'] } },
+      inputSchema: {
+        accountUid: z.string().describe('The account UID'),
+        savingsGoalUid: z.string().describe('The savings goal UID'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async ({ accountUid, savingsGoalUid }) => {
+      try {
+        const imgRes = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/account/${accountUid}/savings-goals/${savingsGoalUid}/photo`,
+          { headers: authHeaders },
+        );
+        if (!imgRes.ok) {
+          return {
+            structuredContent: { dataUri: null },
+            content: [{ type: 'text' as const, text: 'No space photo found.' }],
+            isError: false,
+          };
+        }
+        const photoData = await imgRes.json();
+        if (!photoData.base64EncodedPhoto) {
+          return {
+            structuredContent: { dataUri: null },
+            content: [{ type: 'text' as const, text: 'No space photo found.' }],
+            isError: false,
+          };
+        }
+        return {
+          structuredContent: { dataUri: `data:image/png;base64,${photoData.base64EncodedPhoto}` },
+          content: [{ type: 'text' as const, text: 'Space photo fetched.' }],
+          isError: false,
+        };
+      } catch {
+        return {
+          structuredContent: { dataUri: null },
+          content: [{ type: 'text' as const, text: 'Failed to fetch space photo.' }],
+          isError: false,
         };
       }
     },
@@ -679,29 +786,9 @@ const server = new McpServer(
         const payeesData = await payeesRes.json();
         const payees = payeesData.payees ?? [];
 
-        const imageEntries = await Promise.all(
-          payees.map(async (payee: { payeeUid: string }) => {
-            try {
-              const imgRes = await fetch(
-                `${STARLING_API_BASE_URL}/api/v2/payees/${payee.payeeUid}/image`,
-                { headers: { ...authHeaders, Accept: 'image/png' } },
-              );
-              if (!imgRes.ok) return [payee.payeeUid, null];
-              const buffer = await imgRes.arrayBuffer();
-              const base64 = Buffer.from(buffer).toString('base64');
-              return [payee.payeeUid, `data:image/png;base64,${base64}`];
-            } catch {
-              return [payee.payeeUid, null];
-            }
-          }),
-        );
-        const images = Object.fromEntries(
-          imageEntries.filter(([, uri]) => uri !== null),
-        );
-
         return {
           structuredContent: { payees },
-          _meta: { images },
+          _meta: {},
           content: [
             {
               type: 'text' as const,
@@ -888,16 +975,10 @@ const server = new McpServer(
     },
     async (input) => {
       try {
-        const [goalRes, photoRes] = await Promise.all([
-          fetch(
-            `${STARLING_API_BASE_URL}/api/v2/account/${input.accountUid}/savings-goals/${input.spaceUid}`,
-            { headers: authHeaders },
-          ),
-          fetch(
-            `${STARLING_API_BASE_URL}/api/v2/account/${input.accountUid}/savings-goals/${input.spaceUid}/photo`,
-            { headers: authHeaders },
-          ).catch(() => null),
-        ]);
+        const goalRes = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/account/${input.accountUid}/savings-goals/${input.spaceUid}`,
+          { headers: authHeaders },
+        );
 
         if (!goalRes.ok) {
           throw new Error(
@@ -906,23 +987,11 @@ const server = new McpServer(
         }
         const goal = await goalRes.json();
 
-        const images: Record<string, string> = {};
-        if (photoRes && photoRes.ok) {
-          try {
-            const photoData = await photoRes.json();
-            if (photoData.base64EncodedPhoto) {
-              images[input.spaceUid] = `data:image/png;base64,${photoData.base64EncodedPhoto}`;
-            }
-          } catch {
-            // photo unavailable — ignore
-          }
-        }
-
         const result = { ...goal, accountUid: input.accountUid };
 
         return {
           structuredContent: result,
-          _meta: { images },
+          _meta: {},
           content: [
             {
               type: 'text' as const,
@@ -1309,45 +1378,6 @@ const server = new McpServer(
           }),
         );
 
-        const allSpaces = accountsWithSpaces.flatMap((account) =>
-          account.spaces.map(
-            (space: { savingsGoalUid: string }) => ({
-              accountUid: account.accountUid,
-              savingsGoalUid: space.savingsGoalUid,
-            }),
-          ),
-        );
-
-        const imageEntries = await Promise.all(
-          allSpaces.map(
-            async (entry: {
-              accountUid: string;
-              savingsGoalUid: string;
-            }) => {
-              try {
-                const imgRes = await fetch(
-                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/photo`,
-                  { headers: authHeaders },
-                );
-                if (!imgRes.ok)
-                  return [entry.savingsGoalUid, null];
-                const photoData = await imgRes.json();
-                if (!photoData.base64EncodedPhoto)
-                  return [entry.savingsGoalUid, null];
-                return [
-                  entry.savingsGoalUid,
-                  `data:image/png;base64,${photoData.base64EncodedPhoto}`,
-                ];
-              } catch {
-                return [entry.savingsGoalUid, null];
-              }
-            },
-          ),
-        );
-        const images = Object.fromEntries(
-          imageEntries.filter(([, uri]) => uri !== null),
-        );
-
         const { accountUid, spaceUid, ...overrides } = input;
 
         return {
@@ -1357,7 +1387,7 @@ const server = new McpServer(
             selectedSpaceUid: spaceUid ?? null,
             overrides,
           },
-          _meta: { images },
+          _meta: {},
           content: [
             { type: 'text' as const, text: 'Update space form displayed.' },
           ],
@@ -1544,44 +1574,6 @@ const server = new McpServer(
           }),
         );
 
-        const allSpaces = accountsWithData.flatMap((account) =>
-          account.spaces.map(
-            (space: { savingsGoalUid?: string }) => ({
-              accountUid: account.accountUid,
-              savingsGoalUid: space.savingsGoalUid,
-            }),
-          ),
-        );
-
-        const imageEntries = await Promise.all(
-          allSpaces.map(
-            async (entry: {
-              accountUid: string;
-              savingsGoalUid?: string;
-            }) => {
-              try {
-                const imgRes = await fetch(
-                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/photo`,
-                  { headers: authHeaders },
-                );
-                if (!imgRes.ok) return [entry.savingsGoalUid, null];
-                const photoData = await imgRes.json();
-                if (!photoData.base64EncodedPhoto)
-                  return [entry.savingsGoalUid, null];
-                return [
-                  entry.savingsGoalUid,
-                  `data:image/png;base64,${photoData.base64EncodedPhoto}`,
-                ];
-              } catch {
-                return [entry.savingsGoalUid, null];
-              }
-            },
-          ),
-        );
-        const images = Object.fromEntries(
-          imageEntries.filter(([, uri]) => uri !== null),
-        );
-
         const { accountUid, spaceUid, ...rest } = input;
 
         return {
@@ -1592,7 +1584,7 @@ const server = new McpServer(
             selectedSpaceUid: spaceUid ?? null,
             prefill: rest,
           },
-          _meta: { images },
+          _meta: {},
           content: [
             {
               type: 'text' as const,
@@ -1763,44 +1755,6 @@ const server = new McpServer(
           }),
         );
 
-        const allSpaces = accountsWithData.flatMap((account) =>
-          account.spaces.map(
-            (space: { savingsGoalUid?: string }) => ({
-              accountUid: account.accountUid,
-              savingsGoalUid: space.savingsGoalUid,
-            }),
-          ),
-        );
-
-        const imageEntries = await Promise.all(
-          allSpaces.map(
-            async (entry: {
-              accountUid: string;
-              savingsGoalUid?: string;
-            }) => {
-              try {
-                const imgRes = await fetch(
-                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/photo`,
-                  { headers: authHeaders },
-                );
-                if (!imgRes.ok) return [entry.savingsGoalUid, null];
-                const photoData = await imgRes.json();
-                if (!photoData.base64EncodedPhoto)
-                  return [entry.savingsGoalUid, null];
-                return [
-                  entry.savingsGoalUid,
-                  `data:image/png;base64,${photoData.base64EncodedPhoto}`,
-                ];
-              } catch {
-                return [entry.savingsGoalUid, null];
-              }
-            },
-          ),
-        );
-        const images = Object.fromEntries(
-          imageEntries.filter(([, uri]) => uri !== null),
-        );
-
         const { accountUid, spaceUid, ...rest } = input;
 
         return {
@@ -1811,7 +1765,7 @@ const server = new McpServer(
             selectedSpaceUid: spaceUid ?? null,
             prefill: rest,
           },
-          _meta: { images },
+          _meta: {},
           content: [
             {
               type: 'text' as const,
@@ -1883,36 +1837,6 @@ const server = new McpServer(
           ),
         );
 
-        const imageEntries = await Promise.all(
-          allSpaces.map(
-            async (entry: {
-              accountUid: string;
-              savingsGoalUid: string;
-            }) => {
-              try {
-                const imgRes = await fetch(
-                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/photo`,
-                  { headers: authHeaders },
-                );
-                if (!imgRes.ok)
-                  return [entry.savingsGoalUid, null];
-                const photoData = await imgRes.json();
-                if (!photoData.base64EncodedPhoto)
-                  return [entry.savingsGoalUid, null];
-                return [
-                  entry.savingsGoalUid,
-                  `data:image/png;base64,${photoData.base64EncodedPhoto}`,
-                ];
-              } catch {
-                return [entry.savingsGoalUid, null];
-              }
-            },
-          ),
-        );
-        const images = Object.fromEntries(
-          imageEntries.filter(([, uri]) => uri !== null),
-        );
-
         const recurringTransferEntries = await Promise.all(
           allSpaces.map(
             async (entry: {
@@ -1941,7 +1865,7 @@ const server = new McpServer(
 
         return {
           structuredContent: result,
-          _meta: { images },
+          _meta: {},
           content: [
             {
               type: 'text' as const,
@@ -2049,35 +1973,6 @@ const server = new McpServer(
           ),
         );
 
-        const imageEntries = await Promise.all(
-          allSpaces.map(
-            async (entry: {
-              accountUid: string;
-              savingsGoalUid?: string;
-            }) => {
-              try {
-                const imgRes = await fetch(
-                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/photo`,
-                  { headers: authHeaders },
-                );
-                if (!imgRes.ok) return [entry.savingsGoalUid, null];
-                const photoData = await imgRes.json();
-                if (!photoData.base64EncodedPhoto)
-                  return [entry.savingsGoalUid, null];
-                return [
-                  entry.savingsGoalUid,
-                  `data:image/png;base64,${photoData.base64EncodedPhoto}`,
-                ];
-              } catch {
-                return [entry.savingsGoalUid, null];
-              }
-            },
-          ),
-        );
-        const images = Object.fromEntries(
-          imageEntries.filter(([, uri]) => uri !== null),
-        );
-
         const recurringTransferEntries = await Promise.all(
           allSpaces.map(
             async (entry: {
@@ -2110,7 +2005,7 @@ const server = new McpServer(
             selectedSpaceUid: input.spaceUid ?? null,
             recurringTransfers,
           },
-          _meta: { images },
+          _meta: {},
           content: [
             {
               type: 'text' as const,
@@ -2234,44 +2129,6 @@ const server = new McpServer(
           }),
         );
 
-        const allSpaces = accountsWithData.flatMap((account) =>
-          account.spaces.map(
-            (space: { savingsGoalUid?: string }) => ({
-              accountUid: account.accountUid,
-              savingsGoalUid: space.savingsGoalUid,
-            }),
-          ),
-        );
-
-        const imageEntries = await Promise.all(
-          allSpaces.map(
-            async (entry: {
-              accountUid: string;
-              savingsGoalUid?: string;
-            }) => {
-              try {
-                const imgRes = await fetch(
-                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/photo`,
-                  { headers: authHeaders },
-                );
-                if (!imgRes.ok) return [entry.savingsGoalUid, null];
-                const photoData = await imgRes.json();
-                if (!photoData.base64EncodedPhoto)
-                  return [entry.savingsGoalUid, null];
-                return [
-                  entry.savingsGoalUid,
-                  `data:image/png;base64,${photoData.base64EncodedPhoto}`,
-                ];
-              } catch {
-                return [entry.savingsGoalUid, null];
-              }
-            },
-          ),
-        );
-        const images = Object.fromEntries(
-          imageEntries.filter(([, uri]) => uri !== null),
-        );
-
         const { accountUid, spaceUid, ...rest } = input;
 
         return {
@@ -2282,7 +2139,7 @@ const server = new McpServer(
             selectedSpaceUid: spaceUid ?? null,
             prefill: rest,
           },
-          _meta: { images },
+          _meta: {},
           content: [
             {
               type: 'text' as const,
@@ -2504,35 +2361,6 @@ const server = new McpServer(
           ),
         );
 
-        const imageEntries = await Promise.all(
-          allSpaces.map(
-            async (entry: {
-              accountUid: string;
-              savingsGoalUid?: string;
-            }) => {
-              try {
-                const imgRes = await fetch(
-                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/photo`,
-                  { headers: authHeaders },
-                );
-                if (!imgRes.ok) return [entry.savingsGoalUid, null];
-                const photoData = await imgRes.json();
-                if (!photoData.base64EncodedPhoto)
-                  return [entry.savingsGoalUid, null];
-                return [
-                  entry.savingsGoalUid,
-                  `data:image/png;base64,${photoData.base64EncodedPhoto}`,
-                ];
-              } catch {
-                return [entry.savingsGoalUid, null];
-              }
-            },
-          ),
-        );
-        const images = Object.fromEntries(
-          imageEntries.filter(([, uri]) => uri !== null),
-        );
-
         const recurringTransferEntries = await Promise.all(
           allSpaces.map(
             async (entry: {
@@ -2565,7 +2393,7 @@ const server = new McpServer(
             selectedSpaceUid: input.spaceUid ?? null,
             recurringTransfers,
           },
-          _meta: { images },
+          _meta: {},
           content: [
             {
               type: 'text' as const,
