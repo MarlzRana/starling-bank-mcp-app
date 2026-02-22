@@ -47,6 +47,20 @@ interface AggregateItem {
   color: string;
 }
 
+interface StackSegment {
+  name: string;
+  amount: number;
+  color: string;
+}
+
+interface StackedBarData {
+  label: string;
+  startDate: Date;
+  endDate: Date;
+  total: number;
+  stacks: StackSegment[];
+}
+
 interface PeriodData {
   period: TimePeriod;
   items: FeedItem[];
@@ -54,6 +68,8 @@ interface PeriodData {
   bars: BarData[];
   categories: AggregateItem[];
   merchants: AggregateItem[];
+  categoryStackedBars: StackedBarData[];
+  merchantStackedBars: StackedBarData[];
 }
 
 // === Constants ===
@@ -263,6 +279,42 @@ function aggregate(
     .sort((a, b) => b.amount - a.amount);
 }
 
+function generateStackedBars(
+  bars: BarData[],
+  spending: FeedItem[],
+  colorMap: Map<string, string>,
+  keyFn: (item: FeedItem) => string,
+): StackedBarData[] {
+  return bars.map((bar) => {
+    const itemsInRange = spending.filter((item) => {
+      const t = new Date(item.transactionTime);
+      return t >= bar.startDate && t <= bar.endDate;
+    });
+
+    const groups = new Map<string, number>();
+    for (const item of itemsInRange) {
+      const key = keyFn(item);
+      groups.set(key, (groups.get(key) || 0) + item.amount.minorUnits);
+    }
+
+    const stacks: StackSegment[] = Array.from(groups.entries())
+      .map(([name, amount]) => ({
+        name,
+        amount,
+        color: colorMap.get(name) || "#999",
+      }))
+      .sort((a, b) => b.amount - a.amount);
+
+    return {
+      label: bar.label,
+      startDate: bar.startDate,
+      endDate: bar.endDate,
+      total: stacks.reduce((sum, s) => sum + s.amount, 0),
+      stacks,
+    };
+  });
+}
+
 // === Sub-components ===
 
 function BarChart({
@@ -309,77 +361,100 @@ function BarChart({
   );
 }
 
-function PieChart({
-  data,
-  currency,
-  spendingTotal,
-  focusedIndex,
-  onSliceHover,
-  onSliceLeave,
+function StackedBarChart({
+  bars,
+  focusedName,
+  onSegmentHover,
+  onSegmentLeave,
+  onSegmentClick,
 }: {
-  data: AggregateItem[];
-  currency: string;
-  spendingTotal: number;
-  focusedIndex: number | null;
-  onSliceHover: (index: number, e: React.MouseEvent) => void;
-  onSliceLeave: () => void;
+  bars: StackedBarData[];
+  focusedName: string | null;
+  onSegmentHover: (
+    barIndex: number,
+    name: string,
+    amount: number,
+    barLabel: string,
+    startDate: Date,
+    rect: DOMRect,
+  ) => void;
+  onSegmentLeave: () => void;
+  onSegmentClick: (barIndex: number, name: string) => void;
 }) {
-  const R = 66;
-  const CX = 100;
-  const CY = 100;
-  const circumference = 2 * Math.PI * R;
+  const [hoveredSegment, setHoveredSegment] = useState<{
+    barIndex: number;
+    name: string;
+  } | null>(null);
 
-  if (data.length === 0) {
-    return (
-      <div className="txn-pie">
-        <div className="txn-pie__center">
-          <span className="txn-pie__center-amount">
-            {formatAmount(currency, 0)}
-          </span>
-          <span className="txn-pie__center-label">No spending</span>
-        </div>
-      </div>
-    );
+  const maxTotal = Math.max(...bars.map((b) => b.total), 1);
+
+  if (bars.length === 0 || bars.every((b) => b.total === 0)) {
+    return <div className="space-empty">No spending data</div>;
   }
 
-  let offset = 0;
-  const segments = data.map((item, i) => {
-    const segLen = (item.percentage / 100) * circumference;
-    const dashoffset = -offset;
-    offset += segLen;
-
-    const isFocused = focusedIndex === i;
-    const isDimmed = focusedIndex !== null && focusedIndex !== i;
-
-    return (
-      <circle
-        key={i}
-        r={R}
-        cx={CX}
-        cy={CY}
-        fill="none"
-        stroke={item.color}
-        strokeWidth={isFocused ? 32 : 28}
-        strokeDasharray={`${segLen} ${circumference - segLen}`}
-        strokeDashoffset={dashoffset}
-        className={`txn-pie__segment${isFocused ? " txn-pie__segment--focused" : ""}${isDimmed ? " txn-pie__segment--dimmed" : ""}`}
-        onMouseEnter={(e) => onSliceHover(i, e)}
-        onMouseLeave={onSliceLeave}
-      />
-    );
-  });
+  const anyHighlighted = focusedName !== null || hoveredSegment !== null;
 
   return (
-    <div className="txn-pie">
-      <svg className="txn-pie__svg" viewBox="0 0 200 200">
-        {segments}
-      </svg>
-      <div className="txn-pie__center">
-        <span className="txn-pie__center-amount">
-          {formatAmount(currency, spendingTotal)}
-        </span>
-        <span className="txn-pie__center-label">Total</span>
-      </div>
+    <div className="txn-chart__bars">
+      {bars.map((bar, barIndex) => {
+        const heightPct = (bar.total / maxTotal) * 100;
+        return (
+          <div
+            key={`${bar.label}-${barIndex}`}
+            className="txn-chart__bar-wrapper"
+          >
+            <div
+              className="txn-stacked-bar"
+              style={{
+                height: `${Math.max(heightPct, 2)}%`,
+                animationDelay: `${barIndex * 0.04}s`,
+              }}
+            >
+              {bar.stacks.map((stack) => {
+                const segHeightPct =
+                  bar.total > 0 ? (stack.amount / bar.total) * 100 : 0;
+
+                const isHoveredSegment =
+                  hoveredSegment?.barIndex === barIndex &&
+                  hoveredSegment?.name === stack.name;
+                const isFocusedByList = focusedName === stack.name;
+                const isHighlighted = isHoveredSegment || isFocusedByList;
+                const isDimmed = anyHighlighted && !isHighlighted;
+
+                return (
+                  <div
+                    key={stack.name}
+                    className={`txn-stacked-bar__segment${isHighlighted ? " txn-stacked-bar__segment--focused" : ""}${isDimmed ? " txn-stacked-bar__segment--dimmed" : ""}`}
+                    style={{
+                      height: `${Math.max(segHeightPct, 0.5)}%`,
+                      background: stack.color,
+                    }}
+                    onMouseEnter={(e) => {
+                      setHoveredSegment({ barIndex, name: stack.name });
+                      const rect =
+                        e.currentTarget.parentElement!.parentElement!.getBoundingClientRect();
+                      onSegmentHover(
+                        barIndex,
+                        stack.name,
+                        stack.amount,
+                        bar.label,
+                        bar.startDate,
+                        rect,
+                      );
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredSegment(null);
+                      onSegmentLeave();
+                    }}
+                    onClick={() => onSegmentClick(barIndex, stack.name)}
+                  />
+                );
+              })}
+            </div>
+            <span className="txn-chart__bar-label">{bar.label}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -447,14 +522,14 @@ function AggregateCard({
   isFocused: boolean;
   currency: string;
   showAvatar: boolean;
-  onHover: (index: number) => void;
+  onHover: (name: string) => void;
   onLeave: () => void;
 }) {
   return (
     <div
       className={`txn-aggregate-card${isFocused ? " txn-aggregate-card--focused" : ""}`}
       style={{ animationDelay: `${index * 0.05}s` }}
-      onMouseEnter={() => onHover(index)}
+      onMouseEnter={() => onHover(item.name)}
       onMouseLeave={onLeave}
     >
       {showAvatar ? (
@@ -495,7 +570,11 @@ function DisplayGetTransactions() {
   const { output } = useToolInfo<"display-get-transactions">();
   const [activeIndex, setActiveIndex] = useState(4);
   const [activeTab, setActiveTab] = useState<BottomTab>("transactions");
-  const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
+  const [focusedName, setFocusedName] = useState<string | null>(null);
+  const [_clickedSegment, setClickedSegment] = useState<{
+    barIndex: number;
+    name: string;
+  } | null>(null);
   const [tooltip, setTooltip] = useState<{
     text: string;
     x: number;
@@ -532,7 +611,36 @@ function DisplayGetTransactions() {
         (item) => item.counterPartyName || "Unknown",
       );
 
-      return { period, items, spendingTotal, bars, categories, merchants };
+      const categoryColorMap = new Map(
+        categories.map((c) => [c.name, c.color]),
+      );
+      const merchantColorMap = new Map(
+        merchants.map((m) => [m.name, m.color]),
+      );
+
+      const categoryStackedBars = generateStackedBars(
+        bars,
+        spending,
+        categoryColorMap,
+        (item) => item.spendingCategory || "UNCATEGORISED",
+      );
+      const merchantStackedBars = generateStackedBars(
+        bars,
+        spending,
+        merchantColorMap,
+        (item) => item.counterPartyName || "Unknown",
+      );
+
+      return {
+        period,
+        items,
+        spendingTotal,
+        bars,
+        categories,
+        merchants,
+        categoryStackedBars,
+        merchantStackedBars,
+      };
     });
   }, [feedItems]);
 
@@ -551,7 +659,8 @@ function DisplayGetTransactions() {
 
   // Reset state on period/tab change
   useEffect(() => {
-    setFocusedIndex(null);
+    setFocusedName(null);
+    setClickedSegment(null);
     setTooltip(null);
   }, [activeIndex, activeTab]);
 
@@ -571,35 +680,50 @@ function DisplayGetTransactions() {
 
   const handleBarLeave = useCallback(() => setTooltip(null), []);
 
-  const handleSliceHover = useCallback(
-    (index: number, e: React.MouseEvent) => {
-      setFocusedIndex(index);
-      const data =
-        activeTab === "by-category"
-          ? activePeriodData.categories[index]
-          : activePeriodData.merchants[index];
-      if (data) {
-        setTooltip({
-          text: `${activeTab === "by-category" ? formatCategory(data.name) : data.name} | ${formatAmount(currency, data.amount)} | ${data.percentage.toFixed(1)}%`,
-          x: e.clientX,
-          y: e.clientY - 16,
-        });
-      }
+  const handleSegmentHover = useCallback(
+    (
+      _barIndex: number,
+      name: string,
+      amount: number,
+      barLabel: string,
+      startDate: Date,
+      rect: DOMRect,
+    ) => {
+      const month = startDate.toLocaleDateString(undefined, {
+        month: "short",
+      });
+      const displayName =
+        activeTab === "by-category" ? formatCategory(name) : name;
+      setTooltip({
+        text: `${displayName} | ${formatAmount(currency, amount)} | ${barLabel} ${month}`,
+        x: rect.left + rect.width / 2,
+        y: rect.top - 8,
+      });
     },
-    [activeTab, activePeriodData, currency],
+    [activeTab, currency],
   );
 
-  const handleSliceLeave = useCallback(() => {
-    setFocusedIndex(null);
+  const handleSegmentLeave = useCallback(() => {
     setTooltip(null);
   }, []);
 
-  const handleListHover = useCallback((index: number) => {
-    setFocusedIndex(index);
+  const handleSegmentClick = useCallback(
+    (barIndex: number, name: string) => {
+      setClickedSegment((prev) =>
+        prev?.barIndex === barIndex && prev?.name === name
+          ? null
+          : { barIndex, name },
+      );
+    },
+    [],
+  );
+
+  const handleListHover = useCallback((name: string) => {
+    setFocusedName(name);
   }, []);
 
   const handleListLeave = useCallback(() => {
-    setFocusedIndex(null);
+    setFocusedName(null);
     setTooltip(null);
   }, []);
 
@@ -663,20 +787,21 @@ function DisplayGetTransactions() {
                     }
                   />
                 ) : (
-                  <PieChart
-                    data={
+                  <StackedBarChart
+                    bars={
                       activeTab === "by-category"
-                        ? pd.categories
-                        : pd.merchants
+                        ? pd.categoryStackedBars
+                        : pd.merchantStackedBars
                     }
-                    currency={currency}
-                    spendingTotal={pd.spendingTotal}
-                    focusedIndex={i === activeIndex ? focusedIndex : null}
-                    onSliceHover={
-                      i === activeIndex ? handleSliceHover : () => {}
+                    focusedName={i === activeIndex ? focusedName : null}
+                    onSegmentHover={
+                      i === activeIndex ? handleSegmentHover : () => {}
                     }
-                    onSliceLeave={
-                      i === activeIndex ? handleSliceLeave : () => {}
+                    onSegmentLeave={
+                      i === activeIndex ? handleSegmentLeave : () => {}
+                    }
+                    onSegmentClick={
+                      i === activeIndex ? handleSegmentClick : () => {}
                     }
                   />
                 )}
@@ -747,7 +872,7 @@ function DisplayGetTransactions() {
                   key={item.name}
                   item={item}
                   index={i}
-                  isFocused={focusedIndex === i}
+                  isFocused={focusedName === item.name}
                   currency={currency}
                   showAvatar={false}
                   onHover={handleListHover}
@@ -767,7 +892,7 @@ function DisplayGetTransactions() {
                   key={item.name}
                   item={item}
                   index={i}
-                  isFocused={focusedIndex === i}
+                  isFocused={focusedName === item.name}
                   currency={currency}
                   showAvatar={true}
                   onHover={handleListHover}

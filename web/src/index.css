@@ -2554,58 +2554,33 @@
   font-weight: 600;
 }
 
-/* Pie Chart */
+/* Stacked Bar Chart */
 
-.txn-pie {
+.txn-stacked-bar {
+  width: 100%;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  height: 180px;
+  flex-direction: column-reverse;
+  border-radius: 0.25rem 0.25rem 0 0;
+  overflow: hidden;
+  min-height: 2px;
+  animation: txn-bar-enter 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+  transform-origin: bottom;
 }
 
-.txn-pie__svg {
-  width: 160px;
-  height: 160px;
-  transform: rotate(-90deg);
-  animation: txn-pie-enter 0.4s ease both;
-}
-
-.txn-pie__segment {
-  fill: none;
-  stroke-linecap: round;
-  transition: opacity 0.2s, stroke-width 0.2s;
+.txn-stacked-bar__segment {
+  width: 100%;
+  transition: opacity 0.2s, filter 0.2s;
   cursor: pointer;
+  min-height: 1px;
 }
 
-.txn-pie__segment--focused {
+.txn-stacked-bar__segment--focused {
   opacity: 1;
+  filter: brightness(1.1);
 }
 
-.txn-pie__segment--dimmed {
-  opacity: 0.4;
-}
-
-.txn-pie__center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-.txn-pie__center-amount {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.txn-pie__center-label {
-  font-size: 0.7rem;
-  color: var(--color-text-secondary);
+.txn-stacked-bar__segment--dimmed {
+  opacity: 0.35;
 }
 
 /* Animations */
@@ -2626,13 +2601,3 @@
   to { opacity: 1; }
 }
 
-@keyframes txn-pie-enter {
-  from {
-    opacity: 0;
-    transform: rotate(-90deg) scale(0.85);
-  }
-  to {
-    opacity: 1;
-    transform: rotate(-90deg) scale(1);
-  }
-}
