@@ -325,3 +325,61 @@ A Space is a pot of money within your app, kept separate from your balance. Itâ€
 - **Read @swagger.json to understand the Starling API**
 - The other savings goals APIs will be implemented in a follow up
 - **Use an agent team and assign team members work - do not do the entire thing yourself - act as a team lead**
+
+Prompt 20:
+
+## Mission
+
+Support users the ability to see their transactions and provide them with useful data visualizations and analytics to help them be better with money
+
+## Tool
+
+### `display-get-transactions`
+
+### Tool input
+
+- Takes in a account uuid only that is mandatory
+
+### Category UUID selection
+
+- The category uuid should always default to defaultCategoryUid associated with the account which you can get from `get-accounts`
+
+#### User interface
+
+- Presents the user with bar charts, where they can see their spending over fixed relative periods being:
+  - (where each bar is a week)
+  - Last month (where each bar is a week)
+  - Last 3 months (where each bar is a month worth of spending)
+  - Last year
+  - Last 2 years
+    This should be the top section where the user can flick through these periods and their graphs
+- Below then there should be three sections:
+  - Transactions: This let's you see the transactions that have occurred over this period
+  - By Category: This let's you see how much you have spent per category over a particular period (you will need to aggregate by category)
+  - By Merchant: This let's you see how much you have spent per merchant over a particular period (you will need to aggregate by merchant)
+
+#### API Response
+
+- Return the last 2 years worth of transactions
+
+## Relevant APIs
+
+GET /api/v2/feed/account/{accountUid}/category/{categoryUid}/transactions-between Get the account holder's feed items for the specified category, which were created between two timestamps
+
+## Other relevant tools
+
+- `get-accounts`
+
+## Guidance
+
+- This month is **not** now minus 1 month. It's the beginning of the current month to today's date. **The same holds for other month time ranges**
+- This year is **not** now minus 1 year. It's the beginning of the current year to today's date.
+- The last two years is **not** now minus 2 year. It's the beginning of the current year to today's date, and the last year
+- **Read @swagger.json to understand the Starling API**
+- Use animations to make the UI feel slick but not gimmick animations - something professional
+- You have been provided an example of what this UI could look like (without the transactions view, and we do not want the user to be able to switch categories and use custom time period (just the ones we have provided))
+
+Prompt 25:
+General get scheduled payments tool
+GET /api/v2/payees/{payeeUid}/account/{accountUid}/scheduled-payments Get scheduled payments
+GET /api/v2/payments/local/account/{accountUid}/category/{categoryUid}/standing-orders List standing orders

@@ -91,16 +91,16 @@ const PERIOD_LABELS: Record<TimePeriod, string> = {
 };
 
 const PIE_COLORS = [
-  "#cc785c",
-  "#5c8ecc",
-  "#5ccc7a",
-  "#cc5c8e",
-  "#ccb85c",
-  "#8e5ccc",
-  "#5cccc0",
-  "#cc6b5c",
-  "#7acc5c",
-  "#5c6bcc",
+  "#cc785c", /* Antique Brass — primary accent */
+  "#6e8fa5", /* Pewter Blue */
+  "#8b9e6f", /* Sage */
+  "#a07595", /* Dusty Orchid */
+  "#c9a655", /* Satin Gold */
+  "#5e9490", /* Muted Teal */
+  "#be8a70", /* Warm Sand */
+  "#7f7baa", /* Muted Iris */
+  "#a09560", /* Dark Khaki */
+  "#c2807e", /* Old Rose */
 ];
 
 // === Helpers ===
