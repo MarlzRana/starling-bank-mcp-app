@@ -957,6 +957,58 @@ const server = new McpServer(
     },
   )
   .registerWidget(
+    'delete-space',
+    { description: 'Delete a Space' },
+    {
+      description:
+        'INTERNAL — do NOT call this tool directly. It is used internally by the get-spaces widget.',
+      _meta: { ui: { visibility: ['app'] } },
+      inputSchema: {
+        accountUid: z.string().uuid().describe('The account UID'),
+        spaceUid: z
+          .string()
+          .uuid()
+          .describe('The space (savings goal) UID'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: true },
+    },
+    async (input) => {
+      try {
+        const res = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/account/${input.accountUid}/savings-goals/${input.spaceUid}`,
+          {
+            method: 'DELETE',
+            headers: authHeaders,
+          },
+        );
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(
+            errorData.error ??
+              `Failed to delete space: ${res.status} ${res.statusText}`,
+          );
+        }
+        return {
+          structuredContent: { success: true },
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Space deleted successfully.',
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [
+            { type: 'text' as const, text: `Error: ${error}` },
+          ],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
     'display-create-space',
     { description: 'Create Space Form' },
     {

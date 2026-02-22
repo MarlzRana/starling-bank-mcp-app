@@ -310,6 +310,7 @@ function SpaceCard({
   onViewTransactions,
   onSetupRecurring,
   onDeleteRecurring,
+  onDeleteSpace,
   onBack,
 }: {
   space: Space & { accountUid: string };
@@ -318,6 +319,7 @@ function SpaceCard({
   onViewTransactions: () => void;
   onSetupRecurring: () => void;
   onDeleteRecurring: () => void;
+  onDeleteSpace: () => void;
   onBack: () => void;
 }) {
   const hasTarget = space.target && space.target.minorUnits > 0;
@@ -356,6 +358,27 @@ function SpaceCard({
         >
           {space.state}
         </span>
+        <button
+          className="payee-action-add"
+          style={{ background: "#dc2626", marginLeft: "auto" }}
+          onClick={onDeleteSpace}
+          type="button"
+          title="Delete space"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          </svg>
+        </button>
       </div>
 
       <div className="space-card__amounts">
@@ -545,9 +568,11 @@ function SpaceCard({
 function CreateSpaceForm({
   accounts,
   onBack,
+  onCreated,
 }: {
   accounts: Account[];
   onBack: () => void;
+  onCreated?: (accountUid: string, space: Space) => void;
 }) {
   const sendFollowUp = useSendFollowUpMessage();
 
@@ -610,10 +635,23 @@ function CreateSpaceForm({
       params.base64EncodedPhoto = photoBase64;
     }
     callCreate(params as Parameters<typeof callCreate>[0], {
-      onSuccess: () => {
+      onSuccess: (data) => {
         sendFollowUp(
           `[Create Space Form] The user created a new space "${name}" successfully.`
         );
+        const sc = data?.structuredContent as
+          | { savingsGoalUid?: string; name?: string; currency?: string; target?: MinorUnitsAmount }
+          | undefined;
+        if (sc?.savingsGoalUid && onCreated) {
+          onCreated(selectedAccount!.accountUid, {
+            savingsGoalUid: sc.savingsGoalUid,
+            name: sc.name ?? name,
+            state: "ACTIVE",
+            totalSaved: { currency: sc.currency ?? currency, minorUnits: 0 },
+            target: sc.target,
+            savedPercentage: 0,
+          });
+        }
       },
     });
   };
@@ -800,7 +838,10 @@ type ViewState =
   | "rt-setup-success"
   | "rt-delete-confirm"
   | "rt-delete-deleting"
-  | "rt-delete-success";
+  | "rt-delete-success"
+  | "space-delete-confirm"
+  | "space-delete-deleting"
+  | "space-delete-success";
 
 function GetSpaces() {
   const { output, responseMetadata } = useToolInfo<"get-spaces">();
@@ -812,6 +853,8 @@ function GetSpaces() {
   const [view, setView] = useState<ViewState>("list");
   const [selectedSpace, setSelectedSpace] = useState<(Space & { accountUid: string }) | null>(null);
   const [transfers, setTransfers] = useState<Record<string, RecurringTransfer>>({});
+  const [localAccounts, setLocalAccounts] = useState<Account[] | null>(null);
+  const [spaceDeleteError, setSpaceDeleteError] = useState<string | null>(null);
 
   const transactions = useCallTool("get-space-transactions");
   const { callToolAsync: doSetup } = useCallTool(
@@ -820,6 +863,7 @@ function GetSpaces() {
   const { callToolAsync: doDelete } = useCallTool(
     "delete-recurring-transfer-to-space-internal",
   );
+  const { callToolAsync: doDeleteSpace } = useCallTool("delete-space");
 
   // Setup form state
   const [rtAmount, setRtAmount] = useState("");
@@ -840,6 +884,67 @@ function GetSpaces() {
       );
     }
   }, [output?.recurringTransfers]);
+
+  useEffect(() => {
+    if (output?.accounts) {
+      setLocalAccounts(output.accounts as Account[]);
+    }
+  }, [output?.accounts]);
+
+  const handleSpaceCreated = useCallback(
+    (accountUid: string, space: Space) => {
+      setLocalAccounts((prev) => {
+        if (!prev) return prev;
+        return prev.map((a) =>
+          a.accountUid === accountUid
+            ? { ...a, spaces: [...a.spaces, space] }
+            : a,
+        );
+      });
+      setView("list");
+    },
+    [],
+  );
+
+  const handleDeleteSpace = async () => {
+    if (!selectedSpace) return;
+
+    setView("space-delete-deleting");
+    setSpaceDeleteError(null);
+
+    try {
+      await doDeleteSpace({
+        accountUid: selectedSpace.accountUid,
+        spaceUid: selectedSpace.savingsGoalUid,
+      });
+
+      setLocalAccounts((prev) => {
+        if (!prev) return prev;
+        return prev.map((a) =>
+          a.accountUid === selectedSpace.accountUid
+            ? {
+                ...a,
+                spaces: a.spaces.filter(
+                  (s) => s.savingsGoalUid !== selectedSpace.savingsGoalUid,
+                ),
+              }
+            : a,
+        );
+      });
+      setTransfers((prev) => {
+        const next = { ...prev };
+        delete next[selectedSpace.savingsGoalUid];
+        return next;
+      });
+      setView("space-delete-success");
+      sendFollowUp(
+        `[Delete Space] The user deleted the space "${selectedSpace.name}".`,
+      );
+    } catch {
+      setSpaceDeleteError("Failed to delete space. Please try again.");
+      setView("space-delete-confirm");
+    }
+  };
 
   const resetSetupForm = () => {
     setRtAmount("");
@@ -976,7 +1081,7 @@ function GetSpaces() {
     );
   }
 
-  const accounts: Account[] = output.accounts ?? [];
+  const accounts: Account[] = localAccounts ?? (output.accounts as Account[] ?? []);
 
   if (view === "create") {
     return (
@@ -984,6 +1089,7 @@ function GetSpaces() {
         <CreateSpaceForm
           accounts={accounts}
           onBack={() => setView("list")}
+          onCreated={handleSpaceCreated}
         />
       </div>
     );
@@ -999,6 +1105,7 @@ function GetSpaces() {
           onViewTransactions={openTransactions}
           onSetupRecurring={() => setView("rt-setup-form")}
           onDeleteRecurring={() => setView("rt-delete-confirm")}
+          onDeleteSpace={() => setView("space-delete-confirm")}
           onBack={() => setView("list")}
         />
       </div>
@@ -1454,6 +1561,151 @@ function GetSpaces() {
               onClick={() => {
                 setRtError(null);
                 setView("detail");
+              }}
+            >
+              Done
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Delete space confirmation
+  if (
+    (view === "space-delete-confirm" ||
+      view === "space-delete-deleting" ||
+      view === "space-delete-success") &&
+    selectedSpace
+  ) {
+    return (
+      <div className="space-container" style={{ position: "relative" }}>
+        <div className="space-form">
+          <button
+            className="payee-form__back"
+            onClick={() => {
+              setSpaceDeleteError(null);
+              setView("detail");
+            }}
+            type="button"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Back
+          </button>
+
+          <h2 className="space-form__title">
+            Delete Space &ldquo;{selectedSpace.name}&rdquo;
+          </h2>
+
+          {spaceDeleteError && (
+            <div className="payee-result__error">
+              <svg
+                className="payee-result__icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
+              </svg>
+              <span>{spaceDeleteError}</span>
+            </div>
+          )}
+
+          <div className="recurring-transfer-card">
+            <div className="recurring-transfer-card__row">
+              <span className="recurring-transfer-card__label">Balance</span>
+              <span className="recurring-transfer-card__amount">
+                {formatAmount(
+                  selectedSpace.totalSaved.currency,
+                  selectedSpace.totalSaved.minorUnits,
+                )}
+              </span>
+            </div>
+            {selectedSpace.target && selectedSpace.target.minorUnits > 0 && (
+              <div className="recurring-transfer-card__row">
+                <span className="recurring-transfer-card__label">Target</span>
+                <span className="recurring-transfer-card__value">
+                  {formatAmount(
+                    selectedSpace.target.currency,
+                    selectedSpace.target.minorUnits,
+                  )}
+                </span>
+              </div>
+            )}
+            <div className="recurring-transfer-card__row">
+              <span className="recurring-transfer-card__label">State</span>
+              <span className="recurring-transfer-card__value">
+                {selectedSpace.state}
+              </span>
+            </div>
+          </div>
+
+          <button
+            className="space-form__submit space-form__submit--destructive"
+            onClick={handleDeleteSpace}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+            Delete Space
+          </button>
+        </div>
+
+        {view === "space-delete-deleting" && (
+          <div className="transfer-overlay transfer-overlay--pending">
+            <span
+              className="payee-spinner"
+              style={{ width: "2rem", height: "2rem", borderWidth: "3px" }}
+            />
+            <span className="transfer-overlay__message">Deleting...</span>
+          </div>
+        )}
+
+        {view === "space-delete-success" && (
+          <div className="transfer-overlay transfer-overlay--deleted">
+            <img src={binIcon} alt="Deleted" className="transfer-bin-icon" />
+            <div className="transfer-overlay__details">
+              <span
+                style={{ fontSize: "1.1rem", fontWeight: 600, color: "#fff" }}
+              >
+                Space deleted
+              </span>
+              <span
+                style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.9)" }}
+              >
+                {selectedSpace.name}
+              </span>
+            </div>
+            <button
+              className="transfer-overlay__done"
+              onClick={() => {
+                setSpaceDeleteError(null);
+                setSelectedSpace(null);
+                setView("list");
               }}
             >
               Done
