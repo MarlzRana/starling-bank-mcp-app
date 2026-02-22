@@ -994,6 +994,209 @@ const server = new McpServer(
     },
   )
   .registerWidget(
+    'update-space',
+    { description: 'Update a Space' },
+    {
+      description:
+        'INTERNAL — do NOT call this tool directly. It is used internally by the display-update-space form widget. ' +
+        'To update a space, call display-update-space instead.',
+      _meta: { ui: { visibility: ['app'] } },
+      inputSchema: {
+        accountUid: z.string().uuid().describe('The account UID'),
+        spaceUid: z.string().uuid().describe('The space (savings goal) UID'),
+        name: z.string().describe('Name of the space'),
+        currency: z
+          .string()
+          .length(3)
+          .describe('ISO 4217 currency code (e.g. GBP)'),
+        target: z
+          .object({
+            currency: z.string().length(3).describe('Currency code'),
+            minorUnits: z.number().describe('Target amount in minor units'),
+          })
+          .optional()
+          .describe('Optional savings target'),
+        base64EncodedPhoto: z
+          .string()
+          .optional()
+          .describe('Optional base64-encoded photo'),
+      },
+      annotations: { readOnlyHint: false },
+    },
+    async (input) => {
+      try {
+        const body: Record<string, unknown> = {
+          name: input.name,
+          currency: input.currency,
+        };
+        if (input.target) body.target = input.target;
+        if (input.base64EncodedPhoto)
+          body.base64EncodedPhoto = input.base64EncodedPhoto;
+
+        const res = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/account/${input.accountUid}/savings-goals/${input.spaceUid}`,
+          {
+            method: 'PUT',
+            headers: { ...authHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          },
+        );
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(
+            errorData.error ??
+              `Failed to update space: ${res.status} ${res.statusText}`,
+          );
+        }
+        const data = await res.json();
+
+        return {
+          structuredContent: {
+            success: true,
+            savingsGoalUid: data.savingsGoalUid,
+            name: input.name,
+            currency: input.currency,
+            target: input.target,
+          },
+          content: [
+            {
+              type: 'text' as const,
+              text: `Space "${input.name}" updated successfully.`,
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
+    'display-update-space',
+    { description: 'Update Space Form' },
+    {
+      description:
+        'IMMEDIATELY call this tool when the user wants to update or edit a Space (savings goal) — do not ask questions first, show the form right away. ' +
+        'If you know the accountUid and spaceUid, pass them to jump straight to the edit form. ' +
+        'Pass any field values the user has already mentioned (e.g. name, targetMinorUnits) to pre-fill them in the form. ' +
+        'Otherwise the user will pick from a list and fill in the form themselves. ' +
+        'Do NOT call update-space directly — it is an internal tool used by this form. ' +
+        'After the user submits, you will receive a follow-up message confirming the space was updated.',
+      inputSchema: {
+        accountUid: z.string().uuid().optional().describe('Account UID (skips account selector if provided with spaceUid)'),
+        spaceUid: z.string().uuid().optional().describe('Space UID (skips space selector if provided with accountUid)'),
+        name: z.string().optional().describe('Updated space name'),
+        currency: z.string().length(3).optional().describe('ISO 4217 currency code'),
+        targetMinorUnits: z.number().optional().describe('Target amount in minor units'),
+        base64EncodedPhoto: z.string().optional().describe('Base64-encoded photo'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async (input) => {
+      try {
+        const accountsRes = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/accounts`,
+          { headers: authHeaders },
+        );
+        if (!accountsRes.ok) {
+          throw new Error(
+            `Failed to fetch accounts: ${accountsRes.status} ${accountsRes.statusText}`,
+          );
+        }
+        const accountsData = await accountsRes.json();
+        const rawAccounts: Array<{
+          accountUid: string;
+          name: string;
+          accountType: string;
+          currency: string;
+        }> = accountsData.accounts ?? [];
+
+        const accountsWithSpaces = await Promise.all(
+          rawAccounts.map(async (account) => {
+            const goalsRes = await fetch(
+              `${STARLING_API_BASE_URL}/api/v2/account/${account.accountUid}/savings-goals`,
+              { headers: authHeaders },
+            );
+            if (!goalsRes.ok) {
+              return { ...account, spaces: [] };
+            }
+            const goalsData = await goalsRes.json();
+            return {
+              ...account,
+              spaces: goalsData.savingsGoalList ?? [],
+            };
+          }),
+        );
+
+        const allSpaces = accountsWithSpaces.flatMap((account) =>
+          account.spaces.map(
+            (space: { savingsGoalUid: string }) => ({
+              accountUid: account.accountUid,
+              savingsGoalUid: space.savingsGoalUid,
+            }),
+          ),
+        );
+
+        const imageEntries = await Promise.all(
+          allSpaces.map(
+            async (entry: {
+              accountUid: string;
+              savingsGoalUid: string;
+            }) => {
+              try {
+                const imgRes = await fetch(
+                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/photo`,
+                  { headers: authHeaders },
+                );
+                if (!imgRes.ok)
+                  return [entry.savingsGoalUid, null];
+                const photoData = await imgRes.json();
+                if (!photoData.base64EncodedPhoto)
+                  return [entry.savingsGoalUid, null];
+                return [
+                  entry.savingsGoalUid,
+                  `data:image/png;base64,${photoData.base64EncodedPhoto}`,
+                ];
+              } catch {
+                return [entry.savingsGoalUid, null];
+              }
+            },
+          ),
+        );
+        const images = Object.fromEntries(
+          imageEntries.filter(([, uri]) => uri !== null),
+        );
+
+        const { accountUid, spaceUid, ...overrides } = input;
+
+        return {
+          structuredContent: {
+            accounts: accountsWithSpaces,
+            selectedAccountUid: accountUid ?? null,
+            selectedSpaceUid: spaceUid ?? null,
+            overrides,
+          },
+          _meta: { images },
+          content: [
+            { type: 'text' as const, text: 'Update space form displayed.' },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [
+            { type: 'text' as const, text: `Error: ${error}` },
+          ],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
     'get-spaces',
     { description: 'Starling Bank Spaces' },
     {

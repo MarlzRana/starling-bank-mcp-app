@@ -245,16 +245,56 @@ A Space is a pot of money within your app, kept separate from your balance. Itâ€
 
 ## Tool to create
 
-- `get-spaces` will return you all the spaces associated with an account. The user should be presented with a list of their spaces, and then they should be able to click the space, to get the same view as `get-space` returns. In the top level view that presents all the spaced under a given account make sure to also present the space photo.
+- `update-space` allows the user to update a space, and then upon success present UI confirming the new space details and then upon success present UI confirming the update and the details used
+- `display-update-space` will present a UI allow the user to pick an account (use the `get-accounts` with the `useCallTool` hook under the hood). It should optionally take in the same parameters as `update-space` as arguments to pre-fill the create space form with, in a similar way to `update-payee`. Do not make the user manually enter an account uuid. Use the `get-accounts` tool via the `useCallTool` hook to create an account selector, in which you grab the account uuid to edit the space under. Do not make the user manually enter an space uuid. Use the `get-spaces` tool via the `useCallTool` hook to create an spaces selector, in which you grab the space uuid to make the space under. Present the same confirmation UI as the `update-space` tool does - share UI if useful.
 
 ## Relevant APIs
 
-GET /api/v2/account/{accountUid}/savings-goals Get all savings goals
-GET /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid}/photo Get the photo associated with a savings goal
-GET /api/v2/feed/account/{accountUid}/category/{categoryUid}/transactions-between
+PUT /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid} Update an existing goal
 
-Future prompt:
+## Guidance
 
-- `update-space` allows the user to update a space, and then upon success present UI confirming the new space details and then upon success present UI confirming the update and the details used
-- `display-update-space` will present a UI allow the user to pick an account (use the `get-accounts` with the `useCallTool` hook under the hood). It should optionally take in the same parameters as `update-space` as arguments to pre-fill the create space form with, in a similar way to `create-payee`. Do not make the user manually enter an account uuid. Use the `get-accounts` tool via the `useCallTool` hook to create an account selector, in which you grab the account uuid to make the space under. Do not make the user manually enter an space uuid. Use the `get-` tool via the `useCallTool` hook to create an account selector, in which you grab the account uuid to make the space under.
-  Present the same confirmation UI as the `update-space` tool does - share UI if useful
+- Read @swagger.json to understand the Starling API
+- Make sure the user can update a space photo
+- The other savings goals APIs will be implemented in a follow up
+
+Prompt 14:
+
+## Mission
+
+Support the ability for Starling Customers to move money in and out of spaces.
+
+## Space definition
+
+A Space is a pot of money within your app, kept separate from your balance. Itâ€™s great for getting expenses neatly sorted and under your control.
+
+## Important technical information
+
+- A space uid/savings goal uid is a category uuid under the hood
+- The API calls spaces savings goals but in the app it's called a space. Use the terminology of a space and map eg. concepts like like a space uuid to a savings goal uuid under the hood
+
+## Tools
+
+- Make a `get-uuid` tool that is used to generate the UUID e.g. for a transfer uuid/any uuid needed for idempotency
+- Make a `add-money-to-space` tool that optionally takes in an account uuid and space uuid (if not present). If they are not provided, present pickers that let you pick an account and space (use the useCallTool on get-accounts and get-spaces to support this)
+  This transfer money from the main category into the space.
+- Make a `withdraw-money-from-spaces` tool that optionally takes in an account uuid and space uuid (if not present). If they are not provided, present pickers that let you pick an account and space (use the useCallTool on get-accounts and get-spaces to support this). This allow users to withdraw money from their space back into their primary category/main balance.
+
+## Relevant APIs
+
+- PUT /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid}/add-money/{transferUid} Add money into a savings goal
+- PUT /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid}/withdraw-money/{transferUid} Withdraw money from a savings goal
+
+## Guidance
+
+- Read @swagger.json to understand the Starling API
+- When the user kicks off a transfer/withdrawal, black tint out screen, and show a transferring message with a nice animations as we are waiting, and then transitions to a green tint with a tick, and then presents the user with the info of the transfer/withdrawal with a button that let's them return the main screen/get rid of the tint
+- The other savings goals APIs will be implemented in a follow up
+
+Prompt 15:
+
+## Relevant APIs
+
+- GET /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid}/recurring-transfer Get the recurring transfer of a savings goal
+- PUT /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid}/recurring-transfer Create a recurring transfer into a savings goal
+- DELETE /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid}/recurring-transfer Delete the recurring transfer of a savings goal
