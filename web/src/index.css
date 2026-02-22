@@ -2118,3 +2118,92 @@
   font-size: 0.8rem;
   color: var(--color-text-secondary);
 }
+
+/* ── Transfer Overlay ───────────────────────────────── */
+
+.transfer-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  animation: transfer-overlay-enter 0.3s ease both;
+  padding: 1.5rem;
+  gap: 1rem;
+}
+
+.transfer-overlay--pending {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+}
+
+.transfer-overlay--success {
+  background: rgba(22, 163, 74, 0.85);
+  backdrop-filter: blur(6px);
+  animation: transfer-overlay-success 0.4s ease both;
+}
+
+.transfer-checkmark__circle {
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  animation: transfer-checkmark-draw 0.6s ease 0.2s forwards;
+}
+
+.transfer-checkmark__check {
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: transfer-checkmark-draw 0.4s ease 0.6s forwards;
+}
+
+.transfer-overlay__message {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  animation: transfer-pulse 1.5s ease infinite;
+}
+
+.transfer-overlay__details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  text-align: center;
+}
+
+.transfer-overlay__done {
+  padding: 0.65rem 2rem;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-top: 0.5rem;
+}
+
+.transfer-overlay__done:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+@keyframes transfer-overlay-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes transfer-overlay-success {
+  from { background: rgba(0, 0, 0, 0.7); }
+  to { background: rgba(22, 163, 74, 0.85); }
+}
+
+@keyframes transfer-checkmark-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes transfer-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

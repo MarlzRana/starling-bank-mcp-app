@@ -1197,6 +1197,463 @@ const server = new McpServer(
     },
   )
   .registerWidget(
+    'get-uuid',
+    { description: 'Generate UUID' },
+    {
+      description:
+        'Generate a random UUID for idempotent operations like transfers.',
+      annotations: { readOnlyHint: true },
+    },
+    async () => ({
+      structuredContent: { uuid: crypto.randomUUID() },
+      content: [
+        {
+          type: 'text' as const,
+          text: `Generated UUID: ${crypto.randomUUID()}`,
+        },
+      ],
+      isError: false,
+    }),
+  )
+  .registerWidget(
+    'transfer-to-space',
+    { description: 'Transfer to Space' },
+    {
+      description:
+        'INTERNAL — do NOT call this tool directly. It is used internally by the add-money-to-space form widget. ' +
+        'To add money to a space, call add-money-to-space instead.',
+      _meta: { ui: { visibility: ['app'] } },
+      inputSchema: {
+        accountUid: z.string().uuid().describe('The account UID'),
+        spaceUid: z.string().uuid().describe('The space (savings goal) UID'),
+        transferUid: z
+          .string()
+          .uuid()
+          .describe('Unique transfer UID for idempotency'),
+        amount: z
+          .object({
+            currency: z.string().describe('Currency code'),
+            minorUnits: z.number().describe('Amount in minor units'),
+          })
+          .describe('Amount to transfer'),
+      },
+      annotations: { readOnlyHint: false },
+    },
+    async (input) => {
+      try {
+        const res = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/account/${input.accountUid}/savings-goals/${input.spaceUid}/add-money/${input.transferUid}`,
+          {
+            method: 'PUT',
+            headers: { ...authHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: input.amount }),
+          },
+        );
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(
+            errorData.error ??
+              `Failed to transfer: ${res.status} ${res.statusText}`,
+          );
+        }
+        return {
+          structuredContent: {
+            success: true,
+            transferUid: input.transferUid,
+          },
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Transfer to space completed.',
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
+    'add-money-to-space',
+    { description: 'Add Money to Space' },
+    {
+      description:
+        'IMMEDIATELY call this tool when the user wants to add money to, deposit into, or top up a Space. ' +
+        'You MUST call get-uuid first to generate a transferUid, then pass it to this tool. ' +
+        'The transferUid is required for idempotency. ' +
+        'Do NOT call transfer-to-space directly — it is an internal tool used by this form. ' +
+        'After the user submits, you will receive a follow-up message confirming the transfer.',
+      inputSchema: {
+        transferUid: z
+          .string()
+          .uuid()
+          .describe('Transfer UUID (from get-uuid) for idempotency'),
+        accountUid: z
+          .string()
+          .uuid()
+          .optional()
+          .describe(
+            'Account UID (skips account selector if provided with spaceUid)',
+          ),
+        spaceUid: z
+          .string()
+          .uuid()
+          .optional()
+          .describe(
+            'Space UID (skips space selector if provided with accountUid)',
+          ),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async (input) => {
+      try {
+        const [accountsRes, holderRes] = await Promise.all([
+          fetch(`${STARLING_API_BASE_URL}/api/v2/accounts`, {
+            headers: authHeaders,
+          }),
+          fetch(`${STARLING_API_BASE_URL}/api/v2/account-holder/name`, {
+            headers: authHeaders,
+          }),
+        ]);
+        if (!accountsRes.ok) {
+          throw new Error(
+            `Failed to fetch accounts: ${accountsRes.status} ${accountsRes.statusText}`,
+          );
+        }
+        const accountsData = await accountsRes.json();
+        const rawAccounts: Array<{
+          accountUid: string;
+          name: string;
+          accountType: string;
+          currency: string;
+        }> = accountsData.accounts ?? [];
+
+        let accountHolderName: string | undefined;
+        if (holderRes.ok) {
+          const holderData = await holderRes.json();
+          accountHolderName = holderData.accountHolderName;
+        }
+
+        const accountsWithData = await Promise.all(
+          rawAccounts.map(async (account) => {
+            const [balanceRes, goalsRes] = await Promise.all([
+              fetch(
+                `${STARLING_API_BASE_URL}/api/v2/accounts/${account.accountUid}/balance`,
+                { headers: authHeaders },
+              ),
+              fetch(
+                `${STARLING_API_BASE_URL}/api/v2/account/${account.accountUid}/savings-goals`,
+                { headers: authHeaders },
+              ),
+            ]);
+
+            const balance = balanceRes.ok
+              ? await balanceRes.json()
+              : undefined;
+
+            const goalsData = goalsRes.ok
+              ? await goalsRes.json()
+              : { savingsGoalList: [] };
+
+            return {
+              ...account,
+              balance,
+              spaces: goalsData.savingsGoalList ?? [],
+            };
+          }),
+        );
+
+        const allSpaces = accountsWithData.flatMap((account) =>
+          account.spaces.map(
+            (space: { savingsGoalUid?: string }) => ({
+              accountUid: account.accountUid,
+              savingsGoalUid: space.savingsGoalUid,
+            }),
+          ),
+        );
+
+        const imageEntries = await Promise.all(
+          allSpaces.map(
+            async (entry: {
+              accountUid: string;
+              savingsGoalUid?: string;
+            }) => {
+              try {
+                const imgRes = await fetch(
+                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/photo`,
+                  { headers: authHeaders },
+                );
+                if (!imgRes.ok) return [entry.savingsGoalUid, null];
+                const photoData = await imgRes.json();
+                if (!photoData.base64EncodedPhoto)
+                  return [entry.savingsGoalUid, null];
+                return [
+                  entry.savingsGoalUid,
+                  `data:image/png;base64,${photoData.base64EncodedPhoto}`,
+                ];
+              } catch {
+                return [entry.savingsGoalUid, null];
+              }
+            },
+          ),
+        );
+        const images = Object.fromEntries(
+          imageEntries.filter(([, uri]) => uri !== null),
+        );
+
+        const { accountUid, spaceUid, ...rest } = input;
+
+        return {
+          structuredContent: {
+            accounts: accountsWithData,
+            accountHolderName,
+            selectedAccountUid: accountUid ?? null,
+            selectedSpaceUid: spaceUid ?? null,
+            prefill: rest,
+          },
+          _meta: { images },
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Add money to space form displayed.',
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [
+            { type: 'text' as const, text: `Error: ${error}` },
+          ],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
+    'transfer-from-space',
+    { description: 'Transfer from Space' },
+    {
+      description:
+        'INTERNAL — do NOT call this tool directly. It is used internally by the withdraw-money-from-space form widget. ' +
+        'To withdraw money from a space, call withdraw-money-from-space instead.',
+      _meta: { ui: { visibility: ['app'] } },
+      inputSchema: {
+        accountUid: z.string().uuid().describe('The account UID'),
+        spaceUid: z.string().uuid().describe('The space (savings goal) UID'),
+        transferUid: z
+          .string()
+          .uuid()
+          .describe('Unique transfer UID for idempotency'),
+        amount: z
+          .object({
+            currency: z.string().describe('Currency code'),
+            minorUnits: z.number().describe('Amount in minor units'),
+          })
+          .describe('Amount to withdraw'),
+      },
+      annotations: { readOnlyHint: false },
+    },
+    async (input) => {
+      try {
+        const res = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/account/${input.accountUid}/savings-goals/${input.spaceUid}/withdraw-money/${input.transferUid}`,
+          {
+            method: 'PUT',
+            headers: { ...authHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount: input.amount }),
+          },
+        );
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(
+            errorData.error ??
+              `Failed to withdraw: ${res.status} ${res.statusText}`,
+          );
+        }
+        return {
+          structuredContent: {
+            success: true,
+            transferUid: input.transferUid,
+          },
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Withdrawal from space completed.',
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
+    'withdraw-money-from-space',
+    { description: 'Withdraw Money from Space' },
+    {
+      description:
+        'IMMEDIATELY call this tool when the user wants to withdraw money from, take money out of, or move money out of a Space. ' +
+        'You MUST call get-uuid first to generate a transferUid, then pass it to this tool. ' +
+        'The transferUid is required for idempotency. ' +
+        'Do NOT call transfer-from-space directly — it is an internal tool used by this form. ' +
+        'After the user submits, you will receive a follow-up message confirming the withdrawal.',
+      inputSchema: {
+        transferUid: z
+          .string()
+          .uuid()
+          .describe('Transfer UUID (from get-uuid) for idempotency'),
+        accountUid: z
+          .string()
+          .uuid()
+          .optional()
+          .describe(
+            'Account UID (skips account selector if provided with spaceUid)',
+          ),
+        spaceUid: z
+          .string()
+          .uuid()
+          .optional()
+          .describe(
+            'Space UID (skips space selector if provided with accountUid)',
+          ),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async (input) => {
+      try {
+        const [accountsRes, holderRes] = await Promise.all([
+          fetch(`${STARLING_API_BASE_URL}/api/v2/accounts`, {
+            headers: authHeaders,
+          }),
+          fetch(`${STARLING_API_BASE_URL}/api/v2/account-holder/name`, {
+            headers: authHeaders,
+          }),
+        ]);
+        if (!accountsRes.ok) {
+          throw new Error(
+            `Failed to fetch accounts: ${accountsRes.status} ${accountsRes.statusText}`,
+          );
+        }
+        const accountsData = await accountsRes.json();
+        const rawAccounts: Array<{
+          accountUid: string;
+          name: string;
+          accountType: string;
+          currency: string;
+        }> = accountsData.accounts ?? [];
+
+        let accountHolderName: string | undefined;
+        if (holderRes.ok) {
+          const holderData = await holderRes.json();
+          accountHolderName = holderData.accountHolderName;
+        }
+
+        const accountsWithData = await Promise.all(
+          rawAccounts.map(async (account) => {
+            const [balanceRes, goalsRes] = await Promise.all([
+              fetch(
+                `${STARLING_API_BASE_URL}/api/v2/accounts/${account.accountUid}/balance`,
+                { headers: authHeaders },
+              ),
+              fetch(
+                `${STARLING_API_BASE_URL}/api/v2/account/${account.accountUid}/savings-goals`,
+                { headers: authHeaders },
+              ),
+            ]);
+
+            const balance = balanceRes.ok
+              ? await balanceRes.json()
+              : undefined;
+
+            const goalsData = goalsRes.ok
+              ? await goalsRes.json()
+              : { savingsGoalList: [] };
+
+            return {
+              ...account,
+              balance,
+              spaces: goalsData.savingsGoalList ?? [],
+            };
+          }),
+        );
+
+        const allSpaces = accountsWithData.flatMap((account) =>
+          account.spaces.map(
+            (space: { savingsGoalUid?: string }) => ({
+              accountUid: account.accountUid,
+              savingsGoalUid: space.savingsGoalUid,
+            }),
+          ),
+        );
+
+        const imageEntries = await Promise.all(
+          allSpaces.map(
+            async (entry: {
+              accountUid: string;
+              savingsGoalUid?: string;
+            }) => {
+              try {
+                const imgRes = await fetch(
+                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/photo`,
+                  { headers: authHeaders },
+                );
+                if (!imgRes.ok) return [entry.savingsGoalUid, null];
+                const photoData = await imgRes.json();
+                if (!photoData.base64EncodedPhoto)
+                  return [entry.savingsGoalUid, null];
+                return [
+                  entry.savingsGoalUid,
+                  `data:image/png;base64,${photoData.base64EncodedPhoto}`,
+                ];
+              } catch {
+                return [entry.savingsGoalUid, null];
+              }
+            },
+          ),
+        );
+        const images = Object.fromEntries(
+          imageEntries.filter(([, uri]) => uri !== null),
+        );
+
+        const { accountUid, spaceUid, ...rest } = input;
+
+        return {
+          structuredContent: {
+            accounts: accountsWithData,
+            accountHolderName,
+            selectedAccountUid: accountUid ?? null,
+            selectedSpaceUid: spaceUid ?? null,
+            prefill: rest,
+          },
+          _meta: { images },
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Withdraw money from space form displayed.',
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [
+            { type: 'text' as const, text: `Error: ${error}` },
+          ],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
     'get-spaces',
     { description: 'Starling Bank Spaces' },
     {

@@ -293,6 +293,10 @@ A Space is a pot of money within your app, kept separate from your balance. Itâ€
 
 Prompt 15:
 
+## Mission
+
+- Support the ability for Starling Bank customers to not just make a 1 time payment to
+
 ## Relevant APIs
 
 - GET /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid}/recurring-transfer Get the recurring transfer of a savings goal
