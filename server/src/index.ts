@@ -770,7 +770,7 @@ const server = new McpServer(
           ),
           fetch(
             `${STARLING_API_BASE_URL}/api/v2/account/${input.accountUid}/savings-goals/${input.spaceUid}/photo`,
-            { headers: { ...authHeaders, Accept: 'image/png' } },
+            { headers: authHeaders },
           ).catch(() => null),
         ]);
 
@@ -784,9 +784,10 @@ const server = new McpServer(
         const images: Record<string, string> = {};
         if (photoRes && photoRes.ok) {
           try {
-            const buffer = await photoRes.arrayBuffer();
-            const base64 = Buffer.from(buffer).toString('base64');
-            images[input.spaceUid] = `data:image/png;base64,${base64}`;
+            const photoData = await photoRes.json();
+            if (photoData.base64EncodedPhoto) {
+              images[input.spaceUid] = `data:image/png;base64,${photoData.base64EncodedPhoto}`;
+            }
           } catch {
             // photo unavailable — ignore
           }
@@ -1054,21 +1055,16 @@ const server = new McpServer(
               try {
                 const imgRes = await fetch(
                   `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/photo`,
-                  {
-                    headers: {
-                      ...authHeaders,
-                      Accept: 'image/png',
-                    },
-                  },
+                  { headers: authHeaders },
                 );
                 if (!imgRes.ok)
                   return [entry.savingsGoalUid, null];
-                const buffer = await imgRes.arrayBuffer();
-                const base64 =
-                  Buffer.from(buffer).toString('base64');
+                const photoData = await imgRes.json();
+                if (!photoData.base64EncodedPhoto)
+                  return [entry.savingsGoalUid, null];
                 return [
                   entry.savingsGoalUid,
-                  `data:image/png;base64,${base64}`,
+                  `data:image/png;base64,${photoData.base64EncodedPhoto}`,
                 ];
               } catch {
                 return [entry.savingsGoalUid, null];

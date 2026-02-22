@@ -46,3 +46,15 @@ payee details just before the payee is created to show in the UI as the deleted 
 Session to resume from to add visibility param to framework:
 
 - claude --resume 82bc3a85-a13d-4efd-b507-ce3964f2707a
+
+Problem: For spaces without photos, the Starling API sometimes returns a 200 OK with data that passes the truthiness check but isn't valid image
+data. The <img> tag then gets an invalid src and renders a broken image icon instead of falling back to initials.
+
+Fix: Added onError handlers to the <img> tags in all three photo components across both widgets:
+
+- SpacePhoto in get-space.tsx (line 37)
+- SpacePhoto in get-spaces.tsx (line 55)
+- SpaceListPhoto in get-spaces.tsx (line 68)
+
+Each component now tracks a failed state. If the image fails to load, onError fires, setting failed = true, which causes the component to
+re-render with the initials fallback instead of the broken <img>

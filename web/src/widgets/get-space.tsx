@@ -1,6 +1,6 @@
 import "@/index.css";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { mountWidget } from "skybridge/web";
 import { useToolInfo, useCallTool } from "../helpers.js";
 
@@ -41,8 +41,10 @@ function SpacePhoto({
   name: string;
   image?: string;
 }) {
-  if (image) {
-    return <img src={image} className="space-card__photo" alt={name} />;
+  const [failed, setFailed] = useState(false);
+  const onError = useCallback(() => setFailed(true), []);
+  if (image && !failed) {
+    return <img src={image} className="space-card__photo" alt={name} onError={onError} />;
   }
   return <div className="space-card__photo-initials">{name[0]}</div>;
 }
