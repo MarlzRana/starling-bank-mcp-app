@@ -1,6 +1,6 @@
 import "@/index.css";
 
-import { useMemo, useState, useCallback, useEffect } from "react";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { mountWidget } from "skybridge/web";
 import { useToolInfo } from "../helpers.js";
 
@@ -327,13 +327,21 @@ function BarChart({
   onBarLeave: () => void;
 }) {
   const maxAmount = Math.max(...bars.map((b) => b.amount), 1);
+  const barsRef = useRef<HTMLDivElement>(null);
+  const [hoverLineLeft, setHoverLineLeft] = useState<number | null>(null);
 
   if (bars.length === 0) {
     return <div className="space-empty">No spending data</div>;
   }
 
   return (
-    <div className="txn-chart__bars">
+    <div className="txn-chart__bars" ref={barsRef} style={{ position: "relative" }}>
+      {hoverLineLeft !== null && (
+        <div
+          className="txn-chart__hover-line"
+          style={{ left: `${hoverLineLeft}%` }}
+        />
+      )}
       {bars.map((bar, i) => {
         const heightPct = (bar.amount / maxAmount) * 100;
         return (
@@ -341,10 +349,22 @@ function BarChart({
             key={`${bar.label}-${i}`}
             className="txn-chart__bar-wrapper"
             onMouseEnter={(e) => {
+              if (barsRef.current) {
+                const barsRect = barsRef.current.getBoundingClientRect();
+                const wrapperRect = e.currentTarget.getBoundingClientRect();
+                setHoverLineLeft(
+                  ((wrapperRect.left + wrapperRect.width / 2 - barsRect.left) /
+                    barsRect.width) *
+                    100,
+                );
+              }
               const rect = e.currentTarget.getBoundingClientRect();
               onBarHover(bar, rect);
             }}
-            onMouseLeave={onBarLeave}
+            onMouseLeave={() => {
+              setHoverLineLeft(null);
+              onBarLeave();
+            }}
           >
             <div
               className="txn-chart__bar"
@@ -364,12 +384,19 @@ function BarChart({
 function StackedBarChart({
   bars,
   focusedName,
+  onBarHover,
   onSegmentHover,
   onSegmentLeave,
   onSegmentClick,
 }: {
   bars: StackedBarData[];
   focusedName: string | null;
+  onBarHover: (
+    total: number,
+    barLabel: string,
+    startDate: Date,
+    rect: DOMRect,
+  ) => void;
   onSegmentHover: (
     barIndex: number,
     name: string,
@@ -385,6 +412,8 @@ function StackedBarChart({
     barIndex: number;
     name: string;
   } | null>(null);
+  const barsRef = useRef<HTMLDivElement>(null);
+  const [hoverLineLeft, setHoverLineLeft] = useState<number | null>(null);
 
   const maxTotal = Math.max(...bars.map((b) => b.total), 1);
 
@@ -394,14 +423,41 @@ function StackedBarChart({
 
   const anyHighlighted = focusedName !== null || hoveredSegment !== null;
 
+  const computeLinePosition = (wrapperEl: Element | null) => {
+    if (barsRef.current && wrapperEl) {
+      const barsRect = barsRef.current.getBoundingClientRect();
+      const wrapperRect = wrapperEl.getBoundingClientRect();
+      setHoverLineLeft(
+        ((wrapperRect.left + wrapperRect.width / 2 - barsRect.left) /
+          barsRect.width) *
+          100,
+      );
+    }
+  };
+
   return (
-    <div className="txn-chart__bars">
+    <div className="txn-chart__bars" ref={barsRef} style={{ position: "relative" }}>
+      {hoverLineLeft !== null && (
+        <div
+          className="txn-chart__hover-line"
+          style={{ left: `${hoverLineLeft}%` }}
+        />
+      )}
       {bars.map((bar, barIndex) => {
-        const heightPct = (bar.total / maxTotal) * 100;
+        const heightPct = (bar.total / maxTotal) * 85; // cap at 85% to leave hoverable whitespace
         return (
           <div
             key={`${bar.label}-${barIndex}`}
             className="txn-chart__bar-wrapper"
+            onMouseEnter={(e) => {
+              computeLinePosition(e.currentTarget);
+              const rect = e.currentTarget.getBoundingClientRect();
+              onBarHover(bar.total, bar.label, bar.startDate, rect);
+            }}
+            onMouseLeave={() => {
+              setHoverLineLeft(null);
+              onSegmentLeave();
+            }}
           >
             <div
               className="txn-stacked-bar"
@@ -431,6 +487,7 @@ function StackedBarChart({
                     }}
                     onMouseEnter={(e) => {
                       setHoveredSegment({ barIndex, name: stack.name });
+                      setHoverLineLeft(null);
                       const rect =
                         e.currentTarget.parentElement!.parentElement!.getBoundingClientRect();
                       onSegmentHover(
@@ -442,9 +499,14 @@ function StackedBarChart({
                         rect,
                       );
                     }}
-                    onMouseLeave={() => {
+                    onMouseLeave={(e) => {
                       setHoveredSegment(null);
-                      onSegmentLeave();
+                      const wrapperEl =
+                        e.currentTarget.parentElement?.parentElement;
+                      computeLinePosition(wrapperEl ?? null);
+                      const rect =
+                        e.currentTarget.parentElement!.parentElement!.getBoundingClientRect();
+                      onBarHover(bar.total, bar.label, bar.startDate, rect);
                     }}
                     onClick={() => onSegmentClick(barIndex, stack.name)}
                   />
@@ -680,22 +742,30 @@ function DisplayGetTransactions() {
 
   const handleBarLeave = useCallback(() => setTooltip(null), []);
 
+  const handleStackedBarHover = useCallback(
+    (total: number, _barLabel: string, _startDate: Date, rect: DOMRect) => {
+      setTooltip({
+        text: formatAmount(currency, total),
+        x: rect.left + rect.width / 2,
+        y: rect.top - 8,
+      });
+    },
+    [currency],
+  );
+
   const handleSegmentHover = useCallback(
     (
       _barIndex: number,
       name: string,
       amount: number,
-      barLabel: string,
-      startDate: Date,
+      _barLabel: string,
+      _startDate: Date,
       rect: DOMRect,
     ) => {
-      const month = startDate.toLocaleDateString(undefined, {
-        month: "short",
-      });
       const displayName =
         activeTab === "by-category" ? formatCategory(name) : name;
       setTooltip({
-        text: `${displayName} | ${formatAmount(currency, amount)} | ${barLabel} ${month}`,
+        text: `${displayName} | ${formatAmount(currency, amount)}`,
         x: rect.left + rect.width / 2,
         y: rect.top - 8,
       });
@@ -794,6 +864,9 @@ function DisplayGetTransactions() {
                         : pd.merchantStackedBars
                     }
                     focusedName={i === activeIndex ? focusedName : null}
+                    onBarHover={
+                      i === activeIndex ? handleStackedBarHover : () => {}
+                    }
                     onSegmentHover={
                       i === activeIndex ? handleSegmentHover : () => {}
                     }
