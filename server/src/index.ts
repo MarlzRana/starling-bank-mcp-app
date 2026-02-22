@@ -356,10 +356,56 @@ const server = new McpServer(
     },
   )
   .registerWidget(
+    'display-update-payee',
+    { description: 'Update Payee Form' },
+    {
+      description:
+        'IMMEDIATELY call this tool when the user wants to update or edit a payee — do not ask questions first, show the form right away. ' +
+        'If you know the payeeUid, pass it to jump straight to the edit form. ' +
+        'Pass any field values the user has already mentioned (e.g. firstName, phoneNumber) to pre-fill them in the form. ' +
+        'Otherwise the user will pick from a list and fill in the form themselves. ' +
+        'Do NOT call update-payee directly — it is an internal tool used by this form. ' +
+        'After the user submits, you will receive a follow-up message confirming 2FA was triggered on their device.',
+      inputSchema: {
+        payeeUid: z.string().uuid().optional().describe('The payee UID to update (skips selector if provided)'),
+        payeeName: z.string().optional().describe('Updated payee name'),
+        payeeType: z.enum(['BUSINESS', 'INDIVIDUAL']).optional().describe('Type of payee'),
+        phoneNumber: z.string().optional().describe('Phone number'),
+        firstName: z.string().optional().describe('First name (for INDIVIDUAL)'),
+        middleName: z.string().optional().describe('Middle name (for INDIVIDUAL)'),
+        lastName: z.string().optional().describe('Last name (for INDIVIDUAL)'),
+        businessName: z.string().optional().describe('Business name (for BUSINESS)'),
+        dateOfBirth: z.string().optional().describe('Date of birth (YYYY-MM-DD)'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async (input) => {
+      const payeesRes = await fetch(`${STARLING_API_BASE_URL}/api/v2/payees`, {
+        headers: authHeaders,
+      });
+      if (!payeesRes.ok) {
+        throw new Error(`Failed to fetch payees: ${payeesRes.status} ${payeesRes.statusText}`);
+      }
+      const payeesData = await payeesRes.json();
+      const payees = payeesData.payees ?? [];
+
+      const { payeeUid, ...overrides } = input;
+
+      return {
+        structuredContent: { payees, selectedPayeeUid: payeeUid ?? null, overrides },
+        content: [{ type: 'text' as const, text: 'Update payee form displayed.' }],
+        isError: false,
+      };
+    },
+  )
+  .registerWidget(
     'update-payee',
     { description: 'Update a payee' },
     {
-      description: "Update an existing payee's details (not accounts).",
+      description:
+        'INTERNAL — do NOT call this tool directly. It is used internally by the display-update-payee form widget. ' +
+        'To update a payee, call display-update-payee instead.',
+      _meta: { ui: { visibility: ['app'] } },
       inputSchema: {
         payeeUid: z.string().uuid().describe('The payee UID to update'),
         payeeName: z.string().describe('Updated payee name'),
