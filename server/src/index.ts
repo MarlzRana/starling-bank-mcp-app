@@ -1736,7 +1736,31 @@ const server = new McpServer(
           imageEntries.filter(([, uri]) => uri !== null),
         );
 
-        const result = { accounts: accountsWithSpaces };
+        const recurringTransferEntries = await Promise.all(
+          allSpaces.map(
+            async (entry: {
+              accountUid: string;
+              savingsGoalUid: string;
+            }) => {
+              try {
+                const rtRes = await fetch(
+                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/recurring-transfer`,
+                  { headers: authHeaders },
+                );
+                if (rtRes.ok)
+                  return [entry.savingsGoalUid, await rtRes.json()];
+                return [entry.savingsGoalUid, null];
+              } catch {
+                return [entry.savingsGoalUid, null];
+              }
+            },
+          ),
+        );
+        const recurringTransfers = Object.fromEntries(
+          recurringTransferEntries.filter(([, rt]) => rt !== null),
+        );
+
+        const result = { accounts: accountsWithSpaces, recurringTransfers };
 
         return {
           structuredContent: result,
