@@ -1,99 +1,91 @@
-# Skybridge Starter
+> **Disclaimer:** This project is not affiliated with, endorsed by, or associated with Starling Bank in any way. It is an independent, open-source project that uses the [Starling Bank Public API](https://developer.starlingbank.com/). "Starling Bank" is a trademark of Starling Bank Limited.
 
-A minimal TypeScript template for building MCP and ChatGPT Apps with the [Skybridge](https://docs.skybridge.tech/home) framework.
+# Starling Bank MCP App
+
+A full-featured MCP app that brings Starling Bank account management into Claude, ChatGPT, and other MCP-compatible clients via interactive widgets. Built with [Skybridge](https://docs.skybridge.tech/) and React.
+
+## Features
+
+- **Accounts** — View accounts, balances, and identifiers
+- **Cards** — Visual card display with flip animation; toggle controls (ATM, online, POS, mag stripe, mobile wallet, card lock)
+- **Payees** — Create, view, update, and delete payees with profile images
+- **Spaces (Savings Goals)** — Create, view, update, deposit, withdraw, and manage recurring transfers
+- **Transactions** — Browse transaction history with spending analytics
+- **Scheduled Payments** — View standing orders, direct debits, and space transfers
+- **Direct Debits** — View mandates and payment history
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 24+
-- HTTP tunnel such as [ngrok](https://ngrok.com/download) if you want to test with remote MCP hosts like ChatGPT or Claude.ai.
+- A [Starling Bank Developer](https://developer.starlingbank.com/) personal access token (sandbox or production)
+- An HTTP tunnel such as [ngrok](https://ngrok.com/download) if testing with remote MCP hosts like ChatGPT or Claude.ai
 
-### Local Development
+### Setup
 
-#### 1. Install
+1. **Install dependencies**
 
-```bash
-npm install
-# or
-yarn install
-# or
-pnpm install
-# or
-bun install
-```
+   ```bash
+   npm install
+   ```
 
-#### 2. Start your local server
+2. **Configure environment**
 
-Run the development server from the root directory:
+   Copy `.env.example` to `.env` and fill in your values:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+   ```
+   BEARER_TOKEN=<Your Starling Bank API Token>
+   STARLING_API_BASE_URL=https://api-sandbox.starlingbank.com
+   ```
 
-This command starts:
-- Your MCP server at `http://localhost:3000/mcp`.
-- Skybridge DevTools UI at `http://localhost:3000/`.
+3. **Start the dev server**
 
-#### 3. Project structure
+   ```bash
+   npm run dev
+   ```
+
+   This starts:
+   - The MCP server at `http://localhost:3000/mcp`
+   - Skybridge DevTools UI at `http://localhost:3000/`
+
+## Project Structure
 
 ```
 ├── server/
 │   └── src/
-│       ├── index.ts      # Entry point
-│       ├── middleware.ts # MCP middleware
-│       └── server.ts     # Widget registry & routes
+│       └── index.ts          # All MCP tools and widget registrations
 ├── web/
-│   ├── src/
-│   │   ├── widgets/      # React components (one per widget)
-│   │   ├── helpers.ts    # Shared utilities
-│   │   └── index.css     # Global styles
-│   └── vite.config.ts
-├── alpic.json            # Deployment config
-├── nodemon.json          # Dev server config
+│   └── src/
+│       ├── widgets/          # React components (one per widget)
+│       ├── components/       # Shared React components
+│       ├── hooks/            # Custom React hooks
+│       ├── assets/           # Images and icons
+│       ├── helpers.ts        # Type-safe useToolInfo & useCallTool helpers
+│       └── index.css         # Global styles
+├── swagger.json              # Starling Bank API spec (reference)
+├── alpic.json                # Deployment config
 └── package.json
 ```
 
-### Create your first widget
+## Deployment
 
-#### 1. Add a new widget
+Deploy to any cloud platform that supports MCP, or use [Alpic](https://alpic.ai/) for one-click deploys:
 
-- Register a widget in `server/src/server.ts` with a unique name (e.g., `my-widget`) using [`registerWidget`](https://docs.skybridge.tech/api-reference/register-widget)
-- Create a matching React component at `web/src/widgets/my-widget.tsx`. **The file name must match the widget name exactly**.
+1. Create an account on [Alpic](https://app.alpic.ai/).
+2. Connect your GitHub repository to auto-deploy on each commit.
+3. Use the remote URL to connect from any MCP client.
 
-#### 2. Edit widgets with Hot Module Replacement (HMR)
+## Built With
 
-Edit and save components in `web/src/widgets/` — changes will appear instantly inside your App.
-
-#### 3. Edit server code
-
-Modify files in `server/` and refresh the connection with your testing MCP Client to see the changes.
-
-### Testing your App
-
-You can test your App locally by using our DevTools UI on `localhost:3000` while running the `pnpm dev` command.
-
-To test your app with other MCP Clients like ChatGPT, Claude or VSCode, see [Testing Your App](https://docs.skybridge.tech/quickstart/test-your-app).
-
-
-## Deploy to Production
-
-Skybridge is infrastructure vendor agnostic, and your app can be deployed on any cloud platform supporting MCP.
-
-The simplest way to deploy your App in minutes is [Alpic](https://alpic.ai/).
-1. Create an account on [Alpic platform](https://app.alpic.ai/). 
-2. Connect your GitHub repository to automatically deploy at each commit. 
-3. Use your remote App URL to connect it to MCP Clients, or use the Alpic Playground to easily test your App.
+- [Skybridge](https://docs.skybridge.tech/) — MCP app framework
+- [React 19](https://react.dev/) + [Vite](https://vite.dev/) — Widget UI
+- [Zod](https://zod.dev/) — Input validation
+- [Starling Bank Public API](https://developer.starlingbank.com/) — Banking data
 
 ## Resources
+
 - [Skybridge Documentation](https://docs.skybridge.tech/)
-- [Apps SDK Documentation](https://developers.openai.com/apps-sdk)
-- [MCP Apps Documentation](https://github.com/modelcontextprotocol/ext-apps/tree/main)
-- [Model Context Protocol Documentation](https://modelcontextprotocol.io/)
+- [Starling Bank API Documentation](https://developer.starlingbank.com/)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
 - [Alpic Documentation](https://docs.alpic.ai/)
