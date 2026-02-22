@@ -592,6 +592,162 @@ const server = new McpServer(
         };
       }
     },
+  )
+  .registerWidget(
+    'get-payee-historic-payments',
+    { description: 'Payee Historic Payments' },
+    {
+      description:
+        'Fetch historic payments for a specific payee across all their accounts since a given date.',
+      inputSchema: {
+        payeeUid: z.string().uuid().describe('The payee UID'),
+        since: z
+          .string()
+          .describe('Start date in YYYY-MM-DD format'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async (input) => {
+      try {
+        const payeeRes = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/payees/${input.payeeUid}`,
+          { headers: authHeaders },
+        );
+        if (!payeeRes.ok) {
+          throw new Error(
+            `Failed to fetch payee: ${payeeRes.status} ${payeeRes.statusText}`,
+          );
+        }
+        const payeeData = await payeeRes.json();
+        const payeeName: string = payeeData.payeeName;
+        const accounts: Array<{
+          payeeAccountUid: string;
+          description: string;
+          accountIdentifier: string;
+          bankIdentifier: string;
+          bankIdentifierType: string;
+          countryCode: string;
+        }> = payeeData.accounts ?? [];
+
+        const accountPayments = await Promise.all(
+          accounts.map(async (account) => {
+            const paymentsRes = await fetch(
+              `${STARLING_API_BASE_URL}/api/v2/payees/${input.payeeUid}/account/${account.payeeAccountUid}/payments?since=${input.since}`,
+              { headers: authHeaders },
+            );
+            if (!paymentsRes.ok) {
+              return { account, payments: [] };
+            }
+            const paymentsData = await paymentsRes.json();
+            return {
+              account,
+              payments: paymentsData.payments ?? [],
+            };
+          }),
+        );
+
+        return {
+          structuredContent: {
+            payeeUid: input.payeeUid,
+            payeeName,
+            since: input.since,
+            accountPayments,
+          },
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(
+                { payeeUid: input.payeeUid, payeeName, since: input.since, accountPayments },
+                null,
+                2,
+              ),
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
+    'get-payee-scheduled-payments',
+    { description: 'Payee Scheduled Payments' },
+    {
+      description:
+        'Fetch scheduled payments (standing orders, direct debits) for a specific payee across all their accounts.',
+      inputSchema: {
+        payeeUid: z.string().uuid().describe('The payee UID'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async (input) => {
+      try {
+        const payeeRes = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/payees/${input.payeeUid}`,
+          { headers: authHeaders },
+        );
+        if (!payeeRes.ok) {
+          throw new Error(
+            `Failed to fetch payee: ${payeeRes.status} ${payeeRes.statusText}`,
+          );
+        }
+        const payeeData = await payeeRes.json();
+        const payeeName: string = payeeData.payeeName;
+        const accounts: Array<{
+          payeeAccountUid: string;
+          description: string;
+          accountIdentifier: string;
+          bankIdentifier: string;
+          bankIdentifierType: string;
+          countryCode: string;
+        }> = payeeData.accounts ?? [];
+
+        const accountScheduledPayments = await Promise.all(
+          accounts.map(async (account) => {
+            const schedRes = await fetch(
+              `${STARLING_API_BASE_URL}/api/v2/payees/${input.payeeUid}/account/${account.payeeAccountUid}/scheduled-payments`,
+              { headers: authHeaders },
+            );
+            if (!schedRes.ok) {
+              return { account, scheduledPayments: [] };
+            }
+            const schedData = await schedRes.json();
+            return {
+              account,
+              scheduledPayments: schedData.scheduledPayments ?? [],
+            };
+          }),
+        );
+
+        return {
+          structuredContent: {
+            payeeUid: input.payeeUid,
+            payeeName,
+            accountScheduledPayments,
+          },
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(
+                { payeeUid: input.payeeUid, payeeName, accountScheduledPayments },
+                null,
+                2,
+              ),
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
   );
 
 server.run();

@@ -133,7 +133,7 @@ Let's make a display-create-payee tool that just presents the UI, that then call
 
 Prompt 7:
 
-## Core Mission
+## Mission
 
 - Allow users to see their payments to a particular payee, and what payee account they used to to make each payment
 - Allow users to see their scheduled payments to a particular payee, and what payee account they will use to make each scheduled payment
@@ -142,14 +142,24 @@ Prompt 7:
 
 - GET /api/v2/payees/{payeeUid}/account/{accountUid}/scheduled-payments (Get scheduled payments)
 - GET /api/v2/payees/{payeeUid}/account/{accountUid}/payments (view a history of payments to your payee into get-payees, so users can see their historic and scheduled payments.
+- GET /api/v2/payees/{payeeUid} (Get a specific account holder payee)
+
+## Directive
+
+- Introduce a `get-payee-historic-payments` that takes in a payee uid and since, and that for each payee account under that payee, get's payments. The UI should present cards presenting each payment information and what payment account was used (with the bank, account identifier, scheme and other relevant info)
+- Introduce a `get-payee-scheduled-payments` that takes in a payee uid and since, and that for each payee account under that payee, get's scheduled payments. The UI should present cards presenting the scheduled payment info and what payment account was used (with the bank, account identifier, scheme and other relevant info)
 
 ## Guidance
+
+- Make sure to respect the color scheme.
+- Design it to look good and visually appealing in Claude Desktop
+- Use animations to make the UI feel slick but not gimmick animations - something professional
+- Use @swagger.json to understand the APIs
+- **Keep in mind `{accountUid}` is actually the payeeAccountUid. This is an API naming mistake. Make the tools use payeeAccountUid for consistency.**
+
+Future:
 
 - Introduce two new icons (a history one and scheduled payments) to the payees view that lets users see their payments and scheduled payments to that user in a separate views
 - Correlate payments and scheduled payments to payee account using the payeeAccountUid and present these under the payments/scheduled payments
 - In the payee accounts view (where payees have more than 1 payee accounts under them), make this functionality available as wel
 - For payees with multiple payee accounts, just make this available at the payee account level
-- Make sure to respect the color scheme.
-- Design it to look good and visually appealing in Claude Desktop
-- Use animations to make the UI feel slick but not gimmick animations - something professional
-- Use @swagger.json to understand the APIs

@@ -1319,3 +1319,192 @@
 
 .payee-delete-confirm:hover { opacity: 0.9; }
 .payee-delete-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ── Payments Widgets ───────────────────────────────────── */
+
+.payments-container {
+  background-color: var(--color-bg);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 100%;
+  box-sizing: border-box;
+  font-family: system-ui, sans-serif;
+}
+
+.payments-loading {
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: 2rem;
+}
+
+.payments-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.payments-header__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.payments-header__subtitle {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.payments-header__badge {
+  display: inline-block;
+  background: var(--color-surface);
+  border: 1px solid var(--color-toggle-off);
+  border-radius: 0.375rem;
+  padding: 0.1rem 0.4rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+
+.payments-account {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.payments-account__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem 0 0.25rem;
+  border-bottom: 1px solid var(--color-toggle-off);
+}
+
+.payments-account__desc {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.payments-account__detail {
+  font-size: 0.8rem;
+  font-family: ui-monospace, monospace;
+  color: var(--color-text-secondary);
+}
+
+.payments-empty {
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.9rem;
+}
+
+/* Historic payment card */
+
+.payment-card {
+  background-color: var(--color-surface);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 4px rgba(var(--color-text-rgb), 0.08);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  animation: payee-card-enter 0.3s ease both;
+}
+
+.payment-card__amount {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.payment-card__reference {
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.payment-card__date {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.payment-card__category {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+}
+
+/* Scheduled payment card */
+
+.scheduled-card {
+  background-color: var(--color-surface);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 4px rgba(var(--color-text-rgb), 0.08);
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  animation: payee-card-enter 0.3s ease both;
+}
+
+.scheduled-card__top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.scheduled-card__type-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--color-accent);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+}
+
+.scheduled-card__amount {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.scheduled-card__reference {
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.scheduled-card__recurrence {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.scheduled-card__dates {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+}
+
+.scheduled-card__category {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+}
