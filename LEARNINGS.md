@@ -1,3 +1,4 @@
 - In a Hackathon, construct prompts together in a shared file with VSCode liveshare
 - Use Opus to plan and Sonnet to implement
 - You can see all of Claude's current and past plans in `~/.claude/plans`
+- Claude is amazing at making SVGs

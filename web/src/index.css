@@ -2207,3 +2207,50 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+/* ── Recurring Transfer ────────────────────────────────── */
+
+/* Destructive button variant */
+.space-form__submit--destructive { background: #dc2626; }
+.space-form__submit--destructive:hover { background: #b91c1c; }
+
+/* Destructive (delete) overlay */
+.transfer-overlay--deleted {
+  animation: transfer-overlay-enter 0.3s ease, transfer-overlay-deleted 0.5s 0.3s ease forwards;
+  background: rgba(0, 0, 0, 0.7);
+}
+@keyframes transfer-overlay-deleted {
+  from { background: rgba(0, 0, 0, 0.7); }
+  to { background: rgba(220, 38, 38, 0.85); }
+}
+.transfer-bin-icon {
+  width: 64px;
+  height: 64px;
+  opacity: 0;
+  animation: transfer-bin-appear 0.4s 0.5s ease forwards;
+}
+@keyframes transfer-bin-appear {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Recurring transfer detail card */
+.recurring-transfer-card { display: flex; flex-direction: column; gap: 0.6rem; padding: 1rem; border: 1px solid var(--color-toggle-off); border-radius: 0.75rem; background: var(--color-surface); }
+.recurring-transfer-card__row { display: flex; justify-content: space-between; align-items: center; }
+.recurring-transfer-card__label { font-size: 0.75rem; color: var(--color-text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; }
+.recurring-transfer-card__value { font-size: 0.88rem; color: var(--color-text); font-weight: 500; }
+.recurring-transfer-card__amount { font-size: 1.25rem; font-weight: 700; color: var(--color-text); }
+
+/* Select input */
+.space-form__select { padding: 0.55rem 0.75rem; border: 1px solid var(--color-toggle-off); border-radius: 0.5rem; font-size: 0.88rem; color: var(--color-text); background: var(--color-surface); outline: none; transition: border-color 0.15s; appearance: auto; }
+.space-form__select:focus { border-color: var(--color-accent); }
+
+/* Day-of-week pill toggles */
+.day-pills { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.day-pill { padding: 0.3rem 0.6rem; border: 1px solid var(--color-toggle-off); border-radius: 1rem; font-size: 0.75rem; font-weight: 500; color: var(--color-text-secondary); background: var(--color-surface); cursor: pointer; transition: all 0.15s; }
+.day-pill--active { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+
+/* End condition radio group */
+.end-condition-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.end-condition-option { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--color-text); cursor: pointer; }
+.end-condition-option input[type="radio"] { accent-color: var(--color-accent); }

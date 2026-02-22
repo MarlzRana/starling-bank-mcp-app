@@ -295,10 +295,33 @@ Prompt 15:
 
 ## Mission
 
-- Support the ability for Starling Bank customers to not just make a 1 time payment to
+- Support the ability for Starling Bank customers to set up recurring transfers from their main account/category balance to a particular space
+
+## Space definition
+
+A Space is a pot of money within your app, kept separate from your balance. It’s great for getting expenses neatly sorted and under your control.
+
+## Important technical information
+
+- A space uid/savings goal uid is a category uuid under the hood
+- The API calls spaces savings goals but in the app it's called a space. Use the terminology of a space and map eg. concepts like like a space uuid to a savings goal uuid under the hood
+
+## Tools
+
+- `get-recurring-transfer-to-space` that optionally takes in an account uuid and space uuid (if not present). If they are not provided, present pickers that let you pick an account and space (use the useCallTool on get-accounts and get-spaces to support this). Then this presents all the recurring transfers for that space.
+- `setup-recurring-transfer-to-space` that optionally takes in an account uuid and space uuid (if not present). If they are not provided, present pickers that let you pick an account and space (use the useCallTool on get-accounts and get-spaces to support this). This setups a recurring transfer to a particular space.
+- `delete-recurring-transfer-to-space` that optionally takes in an account uuid and space uuid (if not present). If they are not provided, present pickers that let you pick an account and space (use the useCallTool on get-accounts and get-spaces to support this). Then present the recurring transfers under the space, with a trash icon that if clicked will let you delete a space
 
 ## Relevant APIs
 
 - GET /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid}/recurring-transfer Get the recurring transfer of a savings goal
 - PUT /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid}/recurring-transfer Create a recurring transfer into a savings goal
 - DELETE /api/v2/account/{accountUid}/savings-goals/{savingsGoalUid}/recurring-transfer Delete the recurring transfer of a savings goal
+
+## Guidance
+
+- Know issue: For spaces without photos, the Starling API sometimes returns a 200 OK with data that passes the truthiness check but isn't valid image data. The <img> tag then gets an invalid src and renders a broken image icon instead of falling back to initials.
+- When the user kicks off a action, black tint out screen, and show a message indicating what is going on with a nice animations as we are waiting, and then transitions to a green tint with a tick, and then presents the user with the info regarding the action they just did with a button that let's them return the main screen/get rid of the tint
+- **Read @swagger.json to understand the Starling API**
+- The other savings goals APIs will be implemented in a follow up
+- **Use an agent team and assign team members work - do not do the entire thing yourself - act as a team lead**

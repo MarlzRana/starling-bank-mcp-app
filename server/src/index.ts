@@ -1758,6 +1758,683 @@ const server = new McpServer(
         };
       }
     },
+  )
+  .registerWidget(
+    'get-recurring-transfer-to-space',
+    { description: 'View Recurring Transfer to Space' },
+    {
+      description:
+        'IMMEDIATELY call this tool when the user wants to view or check a recurring transfer set up for a Space (savings goal). ' +
+        'Pass accountUid and spaceUid if known to skip the pickers.',
+      inputSchema: {
+        accountUid: z
+          .string()
+          .uuid()
+          .optional()
+          .describe(
+            'Account UID (skips account selector if provided with spaceUid)',
+          ),
+        spaceUid: z
+          .string()
+          .uuid()
+          .optional()
+          .describe(
+            'Space UID (skips space selector if provided with accountUid)',
+          ),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async (input) => {
+      try {
+        const [accountsRes, holderRes] = await Promise.all([
+          fetch(`${STARLING_API_BASE_URL}/api/v2/accounts`, {
+            headers: authHeaders,
+          }),
+          fetch(`${STARLING_API_BASE_URL}/api/v2/account-holder/name`, {
+            headers: authHeaders,
+          }),
+        ]);
+        if (!accountsRes.ok) {
+          throw new Error(
+            `Failed to fetch accounts: ${accountsRes.status} ${accountsRes.statusText}`,
+          );
+        }
+        const accountsData = await accountsRes.json();
+        const rawAccounts: Array<{
+          accountUid: string;
+          name: string;
+          accountType: string;
+          currency: string;
+        }> = accountsData.accounts ?? [];
+
+        let accountHolderName: string | undefined;
+        if (holderRes.ok) {
+          const holderData = await holderRes.json();
+          accountHolderName = holderData.accountHolderName;
+        }
+
+        const accountsWithData = await Promise.all(
+          rawAccounts.map(async (account) => {
+            const [balanceRes, goalsRes] = await Promise.all([
+              fetch(
+                `${STARLING_API_BASE_URL}/api/v2/accounts/${account.accountUid}/balance`,
+                { headers: authHeaders },
+              ),
+              fetch(
+                `${STARLING_API_BASE_URL}/api/v2/account/${account.accountUid}/savings-goals`,
+                { headers: authHeaders },
+              ),
+            ]);
+            const balance = balanceRes.ok
+              ? await balanceRes.json()
+              : undefined;
+            const goalsData = goalsRes.ok
+              ? await goalsRes.json()
+              : { savingsGoalList: [] };
+            return {
+              ...account,
+              balance,
+              spaces: goalsData.savingsGoalList ?? [],
+            };
+          }),
+        );
+
+        const allSpaces = accountsWithData.flatMap((account) =>
+          account.spaces.map(
+            (space: { savingsGoalUid?: string }) => ({
+              accountUid: account.accountUid,
+              savingsGoalUid: space.savingsGoalUid,
+            }),
+          ),
+        );
+
+        const imageEntries = await Promise.all(
+          allSpaces.map(
+            async (entry: {
+              accountUid: string;
+              savingsGoalUid?: string;
+            }) => {
+              try {
+                const imgRes = await fetch(
+                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/photo`,
+                  { headers: authHeaders },
+                );
+                if (!imgRes.ok) return [entry.savingsGoalUid, null];
+                const photoData = await imgRes.json();
+                if (!photoData.base64EncodedPhoto)
+                  return [entry.savingsGoalUid, null];
+                return [
+                  entry.savingsGoalUid,
+                  `data:image/png;base64,${photoData.base64EncodedPhoto}`,
+                ];
+              } catch {
+                return [entry.savingsGoalUid, null];
+              }
+            },
+          ),
+        );
+        const images = Object.fromEntries(
+          imageEntries.filter(([, uri]) => uri !== null),
+        );
+
+        const recurringTransferEntries = await Promise.all(
+          allSpaces.map(
+            async (entry: {
+              accountUid: string;
+              savingsGoalUid?: string;
+            }) => {
+              try {
+                const rtRes = await fetch(
+                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/recurring-transfer`,
+                  { headers: authHeaders },
+                );
+                if (rtRes.ok)
+                  return [entry.savingsGoalUid, await rtRes.json()];
+                return [entry.savingsGoalUid, null];
+              } catch {
+                return [entry.savingsGoalUid, null];
+              }
+            },
+          ),
+        );
+        const recurringTransfers = Object.fromEntries(
+          recurringTransferEntries.filter(([, rt]) => rt !== null),
+        );
+
+        return {
+          structuredContent: {
+            accounts: accountsWithData,
+            accountHolderName,
+            selectedAccountUid: input.accountUid ?? null,
+            selectedSpaceUid: input.spaceUid ?? null,
+            recurringTransfers,
+          },
+          _meta: { images },
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Recurring transfer details displayed.',
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [
+            { type: 'text' as const, text: `Error: ${error}` },
+          ],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
+    'setup-recurring-transfer-to-space',
+    { description: 'Set Up Recurring Transfer to Space' },
+    {
+      description:
+        'IMMEDIATELY call this tool when the user wants to set up, create, or schedule a recurring transfer to a Space (savings goal). ' +
+        'Pass accountUid and spaceUid if known to skip the pickers. ' +
+        'Do NOT call setup-recurring-transfer-to-space-internal directly — it is an internal tool used by this form. ' +
+        'After the user submits, you will receive a follow-up message confirming the setup.',
+      inputSchema: {
+        accountUid: z
+          .string()
+          .uuid()
+          .optional()
+          .describe(
+            'Account UID (skips account selector if provided with spaceUid)',
+          ),
+        spaceUid: z
+          .string()
+          .uuid()
+          .optional()
+          .describe(
+            'Space UID (skips space selector if provided with accountUid)',
+          ),
+        amountMinorUnits: z
+          .number()
+          .optional()
+          .describe('Pre-fill amount in minor units'),
+        currency: z
+          .string()
+          .length(3)
+          .optional()
+          .describe('Pre-fill currency code'),
+        frequency: z
+          .enum(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'])
+          .optional()
+          .describe('Pre-fill frequency'),
+        startDate: z
+          .string()
+          .optional()
+          .describe('Pre-fill start date (YYYY-MM-DD)'),
+        interval: z.number().optional().describe('Pre-fill interval'),
+        reference: z
+          .string()
+          .max(100)
+          .optional()
+          .describe('Pre-fill reference (max 100 chars)'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async (input) => {
+      try {
+        const [accountsRes, holderRes] = await Promise.all([
+          fetch(`${STARLING_API_BASE_URL}/api/v2/accounts`, {
+            headers: authHeaders,
+          }),
+          fetch(`${STARLING_API_BASE_URL}/api/v2/account-holder/name`, {
+            headers: authHeaders,
+          }),
+        ]);
+        if (!accountsRes.ok) {
+          throw new Error(
+            `Failed to fetch accounts: ${accountsRes.status} ${accountsRes.statusText}`,
+          );
+        }
+        const accountsData = await accountsRes.json();
+        const rawAccounts: Array<{
+          accountUid: string;
+          name: string;
+          accountType: string;
+          currency: string;
+        }> = accountsData.accounts ?? [];
+
+        let accountHolderName: string | undefined;
+        if (holderRes.ok) {
+          const holderData = await holderRes.json();
+          accountHolderName = holderData.accountHolderName;
+        }
+
+        const accountsWithData = await Promise.all(
+          rawAccounts.map(async (account) => {
+            const [balanceRes, goalsRes] = await Promise.all([
+              fetch(
+                `${STARLING_API_BASE_URL}/api/v2/accounts/${account.accountUid}/balance`,
+                { headers: authHeaders },
+              ),
+              fetch(
+                `${STARLING_API_BASE_URL}/api/v2/account/${account.accountUid}/savings-goals`,
+                { headers: authHeaders },
+              ),
+            ]);
+            const balance = balanceRes.ok
+              ? await balanceRes.json()
+              : undefined;
+            const goalsData = goalsRes.ok
+              ? await goalsRes.json()
+              : { savingsGoalList: [] };
+            return {
+              ...account,
+              balance,
+              spaces: goalsData.savingsGoalList ?? [],
+            };
+          }),
+        );
+
+        const allSpaces = accountsWithData.flatMap((account) =>
+          account.spaces.map(
+            (space: { savingsGoalUid?: string }) => ({
+              accountUid: account.accountUid,
+              savingsGoalUid: space.savingsGoalUid,
+            }),
+          ),
+        );
+
+        const imageEntries = await Promise.all(
+          allSpaces.map(
+            async (entry: {
+              accountUid: string;
+              savingsGoalUid?: string;
+            }) => {
+              try {
+                const imgRes = await fetch(
+                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/photo`,
+                  { headers: authHeaders },
+                );
+                if (!imgRes.ok) return [entry.savingsGoalUid, null];
+                const photoData = await imgRes.json();
+                if (!photoData.base64EncodedPhoto)
+                  return [entry.savingsGoalUid, null];
+                return [
+                  entry.savingsGoalUid,
+                  `data:image/png;base64,${photoData.base64EncodedPhoto}`,
+                ];
+              } catch {
+                return [entry.savingsGoalUid, null];
+              }
+            },
+          ),
+        );
+        const images = Object.fromEntries(
+          imageEntries.filter(([, uri]) => uri !== null),
+        );
+
+        const { accountUid, spaceUid, ...rest } = input;
+
+        return {
+          structuredContent: {
+            accounts: accountsWithData,
+            accountHolderName,
+            selectedAccountUid: accountUid ?? null,
+            selectedSpaceUid: spaceUid ?? null,
+            prefill: rest,
+          },
+          _meta: { images },
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Recurring transfer setup form displayed.',
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [
+            { type: 'text' as const, text: `Error: ${error}` },
+          ],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
+    'setup-recurring-transfer-to-space-internal',
+    { description: 'Set Up Recurring Transfer (Internal)' },
+    {
+      description:
+        'INTERNAL — do NOT call this tool directly. It is used internally by the setup-recurring-transfer-to-space form widget. ' +
+        'To set up a recurring transfer, call setup-recurring-transfer-to-space instead.',
+      _meta: { ui: { visibility: ['app'] } },
+      inputSchema: {
+        accountUid: z.string().uuid().describe('The account UID'),
+        spaceUid: z
+          .string()
+          .uuid()
+          .describe('The space (savings goal) UID'),
+        amount: z
+          .object({
+            currency: z.string().describe('Currency code'),
+            minorUnits: z.number().describe('Amount in minor units'),
+          })
+          .describe('Recurring transfer amount'),
+        recurrenceRule: z
+          .object({
+            startDate: z.string().describe('Start date (YYYY-MM-DD)'),
+            frequency: z
+              .enum(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'])
+              .describe('Recurrence frequency'),
+            interval: z
+              .number()
+              .optional()
+              .describe('Interval between occurrences'),
+            count: z
+              .number()
+              .optional()
+              .describe('Number of occurrences'),
+            untilDate: z
+              .string()
+              .optional()
+              .describe('End date (YYYY-MM-DD)'),
+            days: z
+              .array(
+                z.enum([
+                  'MONDAY',
+                  'TUESDAY',
+                  'WEDNESDAY',
+                  'THURSDAY',
+                  'FRIDAY',
+                  'SATURDAY',
+                  'SUNDAY',
+                ]),
+              )
+              .optional()
+              .describe('Days of week'),
+          })
+          .describe('Recurrence rule'),
+        reference: z
+          .string()
+          .max(100)
+          .optional()
+          .describe('Optional reference (max 100 chars)'),
+      },
+      annotations: { readOnlyHint: false },
+    },
+    async (input) => {
+      try {
+        const body: Record<string, unknown> = {
+          amount: input.amount,
+          recurrenceRule: input.recurrenceRule,
+        };
+        if (input.reference) body.reference = input.reference;
+
+        const res = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/account/${input.accountUid}/savings-goals/${input.spaceUid}/recurring-transfer`,
+          {
+            method: 'PUT',
+            headers: {
+              ...authHeaders,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(body),
+          },
+        );
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(
+            errorData.error ??
+              `Failed to set up recurring transfer: ${res.status} ${res.statusText}`,
+          );
+        }
+        const data = await res.json();
+        return {
+          structuredContent: {
+            success: true,
+            transferUid: data.transferUid,
+          },
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Recurring transfer set up successfully.',
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [
+            { type: 'text' as const, text: `Error: ${error}` },
+          ],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
+    'delete-recurring-transfer-to-space',
+    { description: 'Delete Recurring Transfer to Space' },
+    {
+      description:
+        'IMMEDIATELY call this tool when the user wants to delete, cancel, or remove a recurring transfer to a Space (savings goal). ' +
+        'Pass accountUid and spaceUid if known to skip the pickers. ' +
+        'Do NOT call delete-recurring-transfer-to-space-internal directly — it is an internal tool used by this form. ' +
+        'After the user confirms deletion, you will receive a follow-up message.',
+      inputSchema: {
+        accountUid: z
+          .string()
+          .uuid()
+          .optional()
+          .describe(
+            'Account UID (skips account selector if provided with spaceUid)',
+          ),
+        spaceUid: z
+          .string()
+          .uuid()
+          .optional()
+          .describe(
+            'Space UID (skips space selector if provided with accountUid)',
+          ),
+      },
+      annotations: { readOnlyHint: true, destructiveHint: true },
+    },
+    async (input) => {
+      try {
+        const [accountsRes, holderRes] = await Promise.all([
+          fetch(`${STARLING_API_BASE_URL}/api/v2/accounts`, {
+            headers: authHeaders,
+          }),
+          fetch(`${STARLING_API_BASE_URL}/api/v2/account-holder/name`, {
+            headers: authHeaders,
+          }),
+        ]);
+        if (!accountsRes.ok) {
+          throw new Error(
+            `Failed to fetch accounts: ${accountsRes.status} ${accountsRes.statusText}`,
+          );
+        }
+        const accountsData = await accountsRes.json();
+        const rawAccounts: Array<{
+          accountUid: string;
+          name: string;
+          accountType: string;
+          currency: string;
+        }> = accountsData.accounts ?? [];
+
+        let accountHolderName: string | undefined;
+        if (holderRes.ok) {
+          const holderData = await holderRes.json();
+          accountHolderName = holderData.accountHolderName;
+        }
+
+        const accountsWithData = await Promise.all(
+          rawAccounts.map(async (account) => {
+            const [balanceRes, goalsRes] = await Promise.all([
+              fetch(
+                `${STARLING_API_BASE_URL}/api/v2/accounts/${account.accountUid}/balance`,
+                { headers: authHeaders },
+              ),
+              fetch(
+                `${STARLING_API_BASE_URL}/api/v2/account/${account.accountUid}/savings-goals`,
+                { headers: authHeaders },
+              ),
+            ]);
+            const balance = balanceRes.ok
+              ? await balanceRes.json()
+              : undefined;
+            const goalsData = goalsRes.ok
+              ? await goalsRes.json()
+              : { savingsGoalList: [] };
+            return {
+              ...account,
+              balance,
+              spaces: goalsData.savingsGoalList ?? [],
+            };
+          }),
+        );
+
+        const allSpaces = accountsWithData.flatMap((account) =>
+          account.spaces.map(
+            (space: { savingsGoalUid?: string }) => ({
+              accountUid: account.accountUid,
+              savingsGoalUid: space.savingsGoalUid,
+            }),
+          ),
+        );
+
+        const imageEntries = await Promise.all(
+          allSpaces.map(
+            async (entry: {
+              accountUid: string;
+              savingsGoalUid?: string;
+            }) => {
+              try {
+                const imgRes = await fetch(
+                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/photo`,
+                  { headers: authHeaders },
+                );
+                if (!imgRes.ok) return [entry.savingsGoalUid, null];
+                const photoData = await imgRes.json();
+                if (!photoData.base64EncodedPhoto)
+                  return [entry.savingsGoalUid, null];
+                return [
+                  entry.savingsGoalUid,
+                  `data:image/png;base64,${photoData.base64EncodedPhoto}`,
+                ];
+              } catch {
+                return [entry.savingsGoalUid, null];
+              }
+            },
+          ),
+        );
+        const images = Object.fromEntries(
+          imageEntries.filter(([, uri]) => uri !== null),
+        );
+
+        const recurringTransferEntries = await Promise.all(
+          allSpaces.map(
+            async (entry: {
+              accountUid: string;
+              savingsGoalUid?: string;
+            }) => {
+              try {
+                const rtRes = await fetch(
+                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/recurring-transfer`,
+                  { headers: authHeaders },
+                );
+                if (rtRes.ok)
+                  return [entry.savingsGoalUid, await rtRes.json()];
+                return [entry.savingsGoalUid, null];
+              } catch {
+                return [entry.savingsGoalUid, null];
+              }
+            },
+          ),
+        );
+        const recurringTransfers = Object.fromEntries(
+          recurringTransferEntries.filter(([, rt]) => rt !== null),
+        );
+
+        return {
+          structuredContent: {
+            accounts: accountsWithData,
+            accountHolderName,
+            selectedAccountUid: input.accountUid ?? null,
+            selectedSpaceUid: input.spaceUid ?? null,
+            recurringTransfers,
+          },
+          _meta: { images },
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Recurring transfer details displayed for deletion.',
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [
+            { type: 'text' as const, text: `Error: ${error}` },
+          ],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
+    'delete-recurring-transfer-to-space-internal',
+    { description: 'Delete Recurring Transfer (Internal)' },
+    {
+      description:
+        'INTERNAL — do NOT call this tool directly. It is used internally by the delete-recurring-transfer-to-space form widget. ' +
+        'To delete a recurring transfer, call delete-recurring-transfer-to-space instead.',
+      _meta: { ui: { visibility: ['app'] } },
+      inputSchema: {
+        accountUid: z.string().uuid().describe('The account UID'),
+        spaceUid: z
+          .string()
+          .uuid()
+          .describe('The space (savings goal) UID'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: true },
+    },
+    async (input) => {
+      try {
+        const res = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/account/${input.accountUid}/savings-goals/${input.spaceUid}/recurring-transfer`,
+          {
+            method: 'DELETE',
+            headers: authHeaders,
+          },
+        );
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(
+            errorData.error ??
+              `Failed to delete recurring transfer: ${res.status} ${res.statusText}`,
+          );
+        }
+        return {
+          structuredContent: { success: true },
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Recurring transfer deleted successfully.',
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [
+            { type: 'text' as const, text: `Error: ${error}` },
+          ],
+          isError: true,
+        };
+      }
+    },
   );
 
 server.run();
