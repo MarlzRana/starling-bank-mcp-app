@@ -102,28 +102,7 @@ function TransactionsView({
   isPending: boolean;
   onBack: () => void;
 }) {
-  if (isPending || !data) {
-    return (
-      <div>
-        <button className="payee-form__back" onClick={onBack}>
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-          Back
-        </button>
-        <div className="space-loading">Loading transactions...</div>
-      </div>
-    );
-  }
-
-  const feedItems = data.feedItems ?? [];
+  const feedItems = data?.feedItems ?? [];
 
   return (
     <div className="space-transactions-list">
@@ -142,11 +121,15 @@ function TransactionsView({
       </button>
       <div className="payments-header">
         <span className="payments-header__title">{spaceName}</span>
-        <span className="payments-header__subtitle">
-          {feedItems.length} transaction{feedItems.length !== 1 ? "s" : ""}
-        </span>
+        {!isPending && (
+          <span className="payments-header__subtitle">
+            {feedItems.length} transaction{feedItems.length !== 1 ? "s" : ""}
+          </span>
+        )}
       </div>
-      {feedItems.length === 0 ? (
+      {isPending ? (
+        <div className="space-loading">Loading transactions...</div>
+      ) : feedItems.length === 0 ? (
         <div className="space-empty">No transactions found</div>
       ) : (
         feedItems.map((item, i) => (

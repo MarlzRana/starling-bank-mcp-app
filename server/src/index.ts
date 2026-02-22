@@ -991,6 +991,117 @@ const server = new McpServer(
         isError: false,
       };
     },
+  )
+  .registerWidget(
+    'get-spaces',
+    { description: 'Starling Bank Spaces' },
+    {
+      description:
+        'Fetch all Starling Bank Spaces (savings goals) across all accounts with their photos.',
+      annotations: { readOnlyHint: true },
+    },
+    async () => {
+      try {
+        const accountsRes = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/accounts`,
+          { headers: authHeaders },
+        );
+        if (!accountsRes.ok) {
+          throw new Error(
+            `Failed to fetch accounts: ${accountsRes.status} ${accountsRes.statusText}`,
+          );
+        }
+        const accountsData = await accountsRes.json();
+        const rawAccounts: Array<{
+          accountUid: string;
+          name: string;
+          accountType: string;
+          currency: string;
+        }> = accountsData.accounts ?? [];
+
+        const accountsWithSpaces = await Promise.all(
+          rawAccounts.map(async (account) => {
+            const goalsRes = await fetch(
+              `${STARLING_API_BASE_URL}/api/v2/account/${account.accountUid}/savings-goals`,
+              { headers: authHeaders },
+            );
+            if (!goalsRes.ok) {
+              return { ...account, spaces: [] };
+            }
+            const goalsData = await goalsRes.json();
+            return {
+              ...account,
+              spaces: goalsData.savingsGoalList ?? [],
+            };
+          }),
+        );
+
+        const allSpaces = accountsWithSpaces.flatMap((account) =>
+          account.spaces.map(
+            (space: { savingsGoalUid: string }) => ({
+              accountUid: account.accountUid,
+              savingsGoalUid: space.savingsGoalUid,
+            }),
+          ),
+        );
+
+        const imageEntries = await Promise.all(
+          allSpaces.map(
+            async (entry: {
+              accountUid: string;
+              savingsGoalUid: string;
+            }) => {
+              try {
+                const imgRes = await fetch(
+                  `${STARLING_API_BASE_URL}/api/v2/account/${entry.accountUid}/savings-goals/${entry.savingsGoalUid}/photo`,
+                  {
+                    headers: {
+                      ...authHeaders,
+                      Accept: 'image/png',
+                    },
+                  },
+                );
+                if (!imgRes.ok)
+                  return [entry.savingsGoalUid, null];
+                const buffer = await imgRes.arrayBuffer();
+                const base64 =
+                  Buffer.from(buffer).toString('base64');
+                return [
+                  entry.savingsGoalUid,
+                  `data:image/png;base64,${base64}`,
+                ];
+              } catch {
+                return [entry.savingsGoalUid, null];
+              }
+            },
+          ),
+        );
+        const images = Object.fromEntries(
+          imageEntries.filter(([, uri]) => uri !== null),
+        );
+
+        const result = { accounts: accountsWithSpaces };
+
+        return {
+          structuredContent: result,
+          _meta: { images },
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [
+            { type: 'text' as const, text: `Error: ${error}` },
+          ],
+          isError: true,
+        };
+      }
+    },
   );
 
 server.run();

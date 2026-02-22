@@ -1848,6 +1848,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  animation: payee-view-enter 0.25s ease both;
 }
 
 .space-empty {
@@ -1855,6 +1856,12 @@
   text-align: center;
   padding: 1.5rem;
   font-size: 0.9rem;
+  animation: space-empty-enter 0.35s ease both;
+}
+
+@keyframes space-empty-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Space Form ─────────────────────────────────────── */
@@ -2014,5 +2021,100 @@
 
 .space-account-card__balance {
   font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}
+
+/* ── Space List (get-spaces) ──────────────────────────── */
+
+.spaces-account-group {
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.spaces-account-group__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.spaces-account-group__name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.spaces-account-group__type {
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+}
+
+.space-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  cursor: pointer;
+  border-radius: 0.75rem;
+  transition: background 0.15s, box-shadow 0.15s;
+  background: var(--color-surface);
+  box-shadow: 0 1px 4px rgba(var(--color-text-rgb), 0.08);
+  animation: payee-card-enter 0.3s ease both;
+}
+
+.space-list-item:hover {
+  box-shadow: 0 2px 8px rgba(var(--color-text-rgb), 0.14);
+}
+
+.space-list-item__photo {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.space-list-item__photo-initials {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1rem;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.space-list-item__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.space-list-item__name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.space-list-item__saved {
+  font-size: 0.8rem;
   color: var(--color-text-secondary);
 }
