@@ -2513,6 +2513,110 @@ const server = new McpServer(
     },
   )
   .registerWidget(
+    'get-direct-debit-mandates',
+    { description: 'Direct Debit Mandates' },
+    {
+      description:
+        'Fetch all Starling Bank direct debit mandates.',
+      annotations: { readOnlyHint: true },
+    },
+    async () => {
+      try {
+        const res = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/direct-debit/mandates`,
+          { headers: authHeaders },
+        );
+        if (!res.ok) {
+          throw new Error(
+            `Failed to fetch mandates: ${res.status} ${res.statusText}`,
+          );
+        }
+        const data = await res.json();
+        const mandates = data.mandates ?? [];
+
+        return {
+          structuredContent: { mandates },
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(mandates, null, 2),
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
+    'get-direct-debit-mandate-payment-history',
+    { description: 'Direct Debit Mandate Payment History' },
+    {
+      description:
+        'Fetch transaction history for a direct debit mandate.',
+      inputSchema: {
+        mandateUid: z.string().uuid().describe('The direct debit mandate UID'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async (input) => {
+      try {
+        const sinceYear = new Date().getFullYear() - 3;
+        const since = `${sinceYear}-01-01`;
+
+        const [mandateRes, paymentsRes] = await Promise.all([
+          fetch(
+            `${STARLING_API_BASE_URL}/api/v2/direct-debit/mandates/${input.mandateUid}`,
+            { headers: authHeaders },
+          ),
+          fetch(
+            `${STARLING_API_BASE_URL}/api/v2/direct-debit/mandates/${input.mandateUid}/payments?since=${since}`,
+            { headers: authHeaders },
+          ),
+        ]);
+
+        if (!mandateRes.ok) {
+          throw new Error(
+            `Failed to fetch mandate: ${mandateRes.status} ${mandateRes.statusText}`,
+          );
+        }
+
+        const mandate = await mandateRes.json();
+        const paymentsData = paymentsRes.ok
+          ? await paymentsRes.json()
+          : {};
+        // Extract payments from whichever key the API uses
+        const payments =
+          paymentsData.directDebitPayments ??
+          paymentsData.payments ??
+          paymentsData.feedItems ??
+          [];
+
+        const result = { mandate, payments, since };
+
+        return {
+          structuredContent: result,
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
     'display-get-transactions',
     { description: 'Account Transactions' },
     {

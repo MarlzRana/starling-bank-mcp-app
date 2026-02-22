@@ -380,6 +380,92 @@ GET /api/v2/feed/account/{accountUid}/category/{categoryUid}/transactions-betwee
 - You have been provided an example of what this UI could look like (without the transactions view, and we do not want the user to be able to switch categories and use custom time period (just the ones we have provided))
 
 Prompt 25:
+
+## Mission
+
+We want users to be able to:
+
+- see their direct debits mandates
+- get a history of direct debits payments made for a particular mandate
+
+## Tools
+
+### `get-direct-debit-mandates`
+
+#### Tool input
+
+- None
+
+#### Tool Response
+
+- All the direct debits mandates
+
+#### UI
+
+- A UI that nicely presents all the direct debit mandates, including what accounts their associated with. Get extra info about accounts by using the `get-accounts` via the useCallTool hook, and use this information to produce richer account context per direct debit mandate.
+- Each mandate should have a clock/history icon that when we click calls `get-direct-debit-mandate-payment-history` that presents the mandate payment history, keeping the top level mandate information at the top.
+
+### `get-direct-debit-mandate-payment-history`
+
+#### Tool input
+
+- mandateUid
+
+#### Tool Response
+
+The transaction history for the particular mandate
+
+#### UI
+
+- The top level mandate information should still be at the top, do not call the `get-direct-debit-mandates` as that will cause a circular dependency. Use GET /api/v2/direct-debit/mandates/{mandateUid}
+- Present the mandate payment history, it should be the same as the subview in `get-direct-debit-mandates`. Share components if it would help.
+
+## Relevant APIs:
+
+GET /api/v2/direct-debit/mandates Get a list of direct debit mandates
+GET /api/v2/direct-debit/mandates/{mandateUid} Get the direct debit mandate with the specified identifier
+GET /api/v2/direct-debit/mandates/{mandateUid}/payments Get a transaction history for a direct debit
+
+### Guidance:
+
+- Make sure the UI follows the same style as the others generally in the codebase
+- **Read @swagger.json to understand the Starling API**
+- Use animations to make the UI feel slick but not gimmick animations - something professional
+
+Prompt 30:
+
+## Mission
+
+We want users to be able to:
+
+## Tools
+
+### `get-direct-debit-mandates`
+
+#### Tool input
+
+#### Tool Response
+
+#### UI
+
+### `get-direct-debit-mandate-payment-history`
+
+#### Tool input
+
+#### Tool Response
+
+#### UI
+
+## Relevant APIs:
+
+### Guidance:
+
+- Make sure the UI follows the same style as the others generally in the codebase
+- **Read @swagger.json to understand the Starling API**
+- Use animations to make the UI feel slick but not gimmick animations - something professional
+
 General get scheduled payments tool
 GET /api/v2/payees/{payeeUid}/account/{accountUid}/scheduled-payments Get scheduled payments
 GET /api/v2/payments/local/account/{accountUid}/category/{categoryUid}/standing-orders List standing orders
+GET /api/v2/direct-debit/mandates Get a list of direct debit mandates
+GET /api/v2/direct-debit/mandates/{mandateUid} Get the direct debit mandate with the specified identifier
