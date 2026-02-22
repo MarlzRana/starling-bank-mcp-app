@@ -33,11 +33,14 @@ const server = new McpServer(
     },
     async () => {
       try {
-        const [accountsRes, holderNameRes] = await Promise.all([
+        const [accountsRes, holderNameRes, holderRes] = await Promise.all([
           fetch(`${STARLING_API_BASE_URL}/api/v2/accounts`, {
             headers: authHeaders,
           }),
           fetch(`${STARLING_API_BASE_URL}/api/v2/account-holder/name`, {
+            headers: authHeaders,
+          }),
+          fetch(`${STARLING_API_BASE_URL}/api/v2/account-holder`, {
             headers: authHeaders,
           }),
         ]);
@@ -60,6 +63,30 @@ const server = new McpServer(
         if (holderNameRes.ok) {
           const holderData = await holderNameRes.json();
           accountHolderName = holderData.accountHolderName;
+        }
+
+        let accountHolderUid: string | undefined;
+        if (holderRes.ok) {
+          const holderData = await holderRes.json();
+          accountHolderUid = holderData.accountHolderUid;
+        }
+
+        let profileImageUrl: string | null = null;
+        if (accountHolderUid) {
+          try {
+            const imgRes = await fetch(
+              `${STARLING_API_BASE_URL}/api/v2/account-holder/${accountHolderUid}/profile-image`,
+              { headers: { Authorization: `Bearer ${BEARER_TOKEN}`, Accept: 'image/*' } },
+            );
+            if (imgRes.ok) {
+              const contentType = imgRes.headers.get('content-type') ?? 'image/png';
+              const buffer = await imgRes.arrayBuffer();
+              const base64 = Buffer.from(buffer).toString('base64');
+              profileImageUrl = `data:${contentType};base64,${base64}`;
+            }
+          } catch {
+            // No profile image or fetch failed — leave as null
+          }
         }
 
         const enriched = await Promise.all(
@@ -103,14 +130,112 @@ const server = new McpServer(
           }),
         );
 
-        const result = { accountHolderName, accounts: enriched };
+        const result = { accountHolderName, accountHolderUid, accounts: enriched };
 
         return {
           structuredContent: result,
+          _meta: { profileImageUrl },
           content: [
             {
               type: 'text' as const,
-              text: JSON.stringify(result, null, 2),
+              text: JSON.stringify({ accountHolderName, accounts: enriched }, null, 2),
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerTool(
+    'update-profile-image',
+    {
+      description:
+        'INTERNAL — do NOT call this tool directly. It is used internally by the get-accounts widget.',
+      _meta: { ui: { visibility: ['app'] } },
+      inputSchema: {
+        accountHolderUid: z.string().describe('The account holder UID'),
+        imageBase64: z.string().describe('Base64-encoded image data'),
+        contentType: z.string().describe('MIME type of the image (e.g. image/png)'),
+      },
+      annotations: { readOnlyHint: false },
+    },
+    async ({ accountHolderUid, imageBase64, contentType }) => {
+      try {
+        const buffer = Buffer.from(imageBase64, 'base64');
+        const res = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/account-holder/${accountHolderUid}/profile-image`,
+          {
+            method: 'PUT',
+            headers: {
+              Authorization: `Bearer ${BEARER_TOKEN}`,
+              'Content-Type': contentType,
+            },
+            body: buffer,
+          },
+        );
+
+        if (!res.ok) {
+          throw new Error(
+            `Failed to update profile image: ${res.status} ${res.statusText}`,
+          );
+        }
+
+        return {
+          structuredContent: { success: true },
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Profile image updated successfully.',
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerTool(
+    'delete-profile-image',
+    {
+      description:
+        'INTERNAL — do NOT call this tool directly. It is used internally by the get-accounts widget.',
+      _meta: { ui: { visibility: ['app'] } },
+      inputSchema: {
+        accountHolderUid: z.string().describe('The account holder UID'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: true },
+    },
+    async ({ accountHolderUid }) => {
+      try {
+        const res = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/account-holder/${accountHolderUid}/profile-image`,
+          {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${BEARER_TOKEN}` },
+          },
+        );
+
+        if (!res.ok) {
+          throw new Error(
+            `Failed to delete profile image: ${res.status} ${res.statusText}`,
+          );
+        }
+
+        return {
+          structuredContent: { success: true },
+          content: [
+            {
+              type: 'text' as const,
+              text: 'Profile image deleted successfully.',
             },
           ],
           isError: false,
@@ -2684,6 +2809,49 @@ const server = new McpServer(
             {
               type: 'text' as const,
               text: `Fetched ${feedItems.length} transactions for account "${account.name}".`,
+            },
+          ],
+          isError: false,
+        };
+      } catch (error) {
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${error}` }],
+          isError: true,
+        };
+      }
+    },
+  )
+  .registerWidget(
+    'get-scheduled-payments',
+    { description: 'Scheduled Payments' },
+    {
+      description:
+        'Fetch all scheduled payments (direct debits, standing orders, space transfers) for a given account.',
+      inputSchema: {
+        accountUid: z.string().uuid().describe('The account UID'),
+      },
+      annotations: { readOnlyHint: true },
+    },
+    async (input) => {
+      try {
+        const res = await fetch(
+          `${STARLING_API_BASE_URL}/api/v2/direct-debit/mandates/account/${input.accountUid}`,
+          { headers: authHeaders },
+        );
+        if (!res.ok) {
+          throw new Error(
+            `Failed to fetch mandates: ${res.status} ${res.statusText}`,
+          );
+        }
+        const data = await res.json();
+        const mandates = data.mandates ?? [];
+
+        return {
+          structuredContent: { accountUid: input.accountUid, mandates },
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({ accountUid: input.accountUid, mandates }, null, 2),
             },
           ],
           isError: false,

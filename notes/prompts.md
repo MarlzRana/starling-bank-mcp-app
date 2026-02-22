@@ -469,3 +469,38 @@ GET /api/v2/payees/{payeeUid}/account/{accountUid}/scheduled-payments Get schedu
 GET /api/v2/payments/local/account/{accountUid}/category/{categoryUid}/standing-orders List standing orders
 GET /api/v2/direct-debit/mandates Get a list of direct debit mandates
 GET /api/v2/direct-debit/mandates/{mandateUid} Get the direct debit mandate with the specified identifier
+
+Prompt 35:
+
+## Mission
+
+We want to make it easier for users to see all their scheduled payments, regardless of whether they are direct debits, standing orders or space-transfers
+
+## Tool
+
+### get-scheduled-payments
+
+#### Tool input
+
+- Takes in an account uuid
+
+#### Tool response
+
+- Direct debits associated with that account uuid
+- Standing order coming out of that account (use the `get-payees` tool and the `get-payee-scheduled-payments` tool via the `useCallToolHook`)
+- Space transfers coming out of that account (use the `get-spaces` tool and `get-recurring-transfer-to-space` via the `useCallTool` hook)
+
+#### UI
+
+- Present the account information for that account uuid at the top (use the `get-accounts` tool via the `useCallTool` hook)
+- 3 sub headings (Direct Debits, Standing Orders, Space Transfers), with relevant items underneath them.
+
+## Relevant APIs:
+
+GET /api/v2/direct-debit/mandates/{mandateUid} Get the direct debit mandate with the specified identifier (remember DirectDebitMandateV2 returns uid for what is the mandateUid)
+
+### Guidance:
+
+- Make sure the UI follows the same style as the others generally in the codebase
+- **Read @swagger.json to understand the Starling API**
+- Use animations to make the UI feel slick but not gimmick animations - something professional

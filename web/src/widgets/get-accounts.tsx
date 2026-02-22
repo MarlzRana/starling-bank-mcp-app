@@ -1,7 +1,8 @@
 import "@/index.css";
 
+import { useState, useRef } from "react";
 import { mountWidget } from "skybridge/web";
-import { useToolInfo } from "../helpers.js";
+import { useToolInfo, useCallTool } from "../helpers.js";
 
 interface MinorUnitsAmount {
   currency: string;
@@ -34,6 +35,153 @@ function formatAmount(currency: string, minorUnits: number): string {
     style: "currency",
     currency,
   }).format(major);
+}
+
+function ProfileImage({
+  imageUrl,
+  accountHolderUid,
+}: {
+  imageUrl: string | null;
+  accountHolderUid: string;
+}) {
+  const [localImage, setLocalImage] = useState<string | null>(imageUrl);
+  const [uploadState, setUploadState] = useState<"idle" | "uploading" | "success">("idle");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { callTool: callUpdate, isPending: isUpdating } = useCallTool("update-profile-image");
+  const { callTool: callDelete, isPending: isDeleting } = useCallTool("delete-profile-image");
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const [header, base64] = dataUrl.split(",");
+      const contentType = header.match(/data:(.*?);/)?.[1] ?? "image/png";
+
+      setUploadState("uploading");
+      callUpdate(
+        { accountHolderUid, imageBase64: base64, contentType },
+        {
+          onSuccess: () => {
+            setLocalImage(dataUrl);
+            setUploadState("success");
+            setTimeout(() => setUploadState("idle"), 1500);
+          },
+          onError: () => {
+            setUploadState("idle");
+          },
+        },
+      );
+    };
+    reader.readAsDataURL(file);
+    // Reset so same file can be re-selected
+    e.target.value = "";
+  };
+
+  const handleDelete = () => {
+    callDelete(
+      { accountHolderUid },
+      {
+        onSuccess: () => {
+          setLocalImage(null);
+          setShowDeleteConfirm(false);
+        },
+        onError: () => {
+          setShowDeleteConfirm(false);
+        },
+      },
+    );
+  };
+
+  return (
+    <div className="profile-image-section">
+      <div className="profile-image-wrapper" onClick={() => fileInputRef.current?.click()}>
+        {localImage ? (
+          <img src={localImage} className="profile-image" alt="Profile" />
+        ) : (
+          <div className="profile-image-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="32" height="32">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </div>
+        )}
+
+        <div className="profile-image-overlay">
+          {uploadState === "uploading" || isUpdating ? (
+            <span className="profile-image-spinner" />
+          ) : uploadState === "success" ? (
+            <svg className="profile-image-check" viewBox="0 0 52 52" width="28" height="28">
+              <circle className="transfer-checkmark__circle" cx="26" cy="26" r="25" fill="none" stroke="#fff" strokeWidth="2" />
+              <path className="transfer-checkmark__check" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="22" height="22">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+          )}
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: "none" }}
+          onChange={handleFileSelect}
+        />
+      </div>
+
+      {localImage && (
+        <button
+          className="profile-image-delete-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowDeleteConfirm(true);
+          }}
+          title="Remove photo"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          </svg>
+        </button>
+      )}
+
+      {showDeleteConfirm && (
+        <div className="profile-delete-overlay">
+          <div className="profile-delete-dialog">
+            <div className="payee-delete-dialog__title">
+              Remove profile photo?
+            </div>
+            <div className="payee-delete-dialog__info">
+              This will delete your profile image from your Starling account.
+            </div>
+            <div className="payee-delete-dialog__actions">
+              <button
+                className="payee-delete-cancel"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="payee-delete-confirm"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting && <span className="payee-spinner" />}
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function IdentifierRow({ identifier }: { identifier: AccountIdentifier }) {
@@ -112,7 +260,8 @@ function AccountCard({ account }: { account: Account }) {
 }
 
 function GetAccounts() {
-  const { output } = useToolInfo<"get-accounts">();
+  const { output, responseMetadata } = useToolInfo<"get-accounts">();
+  const profileImageUrl = (responseMetadata?.profileImageUrl as string | null) ?? null;
 
   if (!output) {
     return (
@@ -124,6 +273,12 @@ function GetAccounts() {
 
   return (
     <div className="accounts-container">
+      {output.accountHolderUid && (
+        <ProfileImage
+          imageUrl={profileImageUrl}
+          accountHolderUid={output.accountHolderUid}
+        />
+      )}
       {output.accountHolderName && (
         <div className="account-holder-name">{output.accountHolderName}</div>
       )}
