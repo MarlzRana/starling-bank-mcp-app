@@ -12,7 +12,7 @@ This demo highlights essential everyday banking features. It shows how the app r
 https://github.com/user-attachments/assets/1d61959a-35a0-4f09-9c2d-10109063473a
 
 ### Demo 2: Space Transfers
-This video demonstrates the workflow for moving money into a Starling Saving Space. The agent generates a secure transfer ID and surfaces a form where the user can select a specific saving goal, enter an amount, and instantly execute the transfer.
+This video demonstrates the workflow for moving money into a Starling Saving Space. The agent generates a transfer ID and surfaces a form where the user can select a specific saving goal, enter an amount, and instantly execute the transfer.
 
 https://github.com/user-attachments/assets/1af40a39-6269-4ff0-b0d1-86144efa8c25
 
