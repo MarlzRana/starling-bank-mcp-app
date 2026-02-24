@@ -4,6 +4,29 @@
 
 A full-featured MCP app that brings Starling Bank account management into Claude, ChatGPT, and other MCP-compatible clients via interactive widgets. Built with [Skybridge](https://docs.skybridge.tech/) and React.
 
+## Demos
+
+### Demo 1: Account Details & Card Controls
+This demo highlights essential everyday banking features. It shows how the app retrieves basic account information, e.g. your current balance, sort code, and account number. It then demonstrates the interactive card management UI, allowing users to toggle live security settings (such as disabling ATM withdrawals or mag-stripe payments) directly within the chat.
+
+https://github.com/user-attachments/assets/1d61959a-35a0-4f09-9c2d-10109063473a
+
+### Demo 2: Space Transfers
+This video demonstrates the workflow for moving money into a Starling Saving Space. The agent generates a transfer ID and surfaces a form where the user can select a specific saving goal, enter an amount, and instantly execute the transfer.
+
+https://github.com/user-attachments/assets/1af40a39-6269-4ff0-b0d1-86144efa8c25
+
+### Demo 3: Interactive Spending Insights
+
+This demo showcases the app's rich analytical capabilities. By simply asking for a spending overview, the app pulls your transaction history and renders an interactive dashboard. The UI visualizes spending trends over time and allows users to seamlessly filter and categorize their transactions by date, merchant, and category.
+
+https://github.com/user-attachments/assets/21ec4ad9-9474-4f69-b44c-ee76801bd3b4
+
+### Demo 4: Managing Scheduled Payments & Recurring Transfers
+This demo showcases how the MCP app handles scheduled account activity. It demonstrates querying the user's upcoming payments (including Direct Debits and Space Transfers) and seamlessly guides the user through a UI form to set up a new monthly recurring transfer to a designated Starling Saving Space.
+
+https://github.com/user-attachments/assets/efac0d28-7d9a-423f-b30a-738d9cfe03be
+
 ## Features
 
 - **Accounts** — View accounts, balances, and identifiers
