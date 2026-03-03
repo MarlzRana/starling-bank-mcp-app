@@ -2,7 +2,13 @@
 
 # Starling Bank MCP App
 
+🏆 **2nd Place Winner at the Claude Code 1st Birthday Hackathon!** 🏆
+
 A full-featured MCP app that brings Starling Bank account management into Claude, ChatGPT, and other MCP-compatible clients via interactive widgets. Built with [Skybridge](https://docs.skybridge.tech/) and React.
+
+## Contributors
+* [Marlin Ranasinghe (@MarlzRana)](https://github.com/MarlzRana)
+* [Daniel Tsiang (@DanielTsiang)](https://github.com/DanielTsiang)
 
 ## Demos
 
